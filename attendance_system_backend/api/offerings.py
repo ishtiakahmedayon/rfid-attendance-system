@@ -12,25 +12,26 @@ def add_offering():
     course_code = data["course_code"]
     academic_year = data["academic_year"]
     batch = data["batch"]
+    assigned_teacher_id = data.get("assigned_teacher_id")
 
     conn = get_connection()
     cur = conn.cursor()
 
     try:
-        cur.execute("""
-            INSERT INTO CourseOfferings (course_code, academic_year, batch)
-            VALUES (?,?,?)
-        """, (course_code, academic_year, batch))
+        cur.execute(
+            """
+            INSERT INTO CourseOfferings (course_code, academic_year, batch, assigned_teacher_id)
+            VALUES (?,?,?,?)
+        """,
+            (course_code, academic_year, batch, assigned_teacher_id),
+        )
 
         conn.commit()
 
-        return jsonify({
-            "success": True,
-            "offering_id": cur.lastrowid
-        })
+        return jsonify({"success": True, "offering_id": cur.lastrowid})
 
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 400
+    except Exception:
+        return jsonify({"success": False, "error": "Failed to add offering"}), 400
 
     finally:
         conn.close()
@@ -42,17 +43,22 @@ def get_offerings():
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute("""
+    cur.execute(
+        """
         SELECT
             CourseOfferings.offering_id,
             CourseOfferings.course_code,
             Courses.course_name,
             CourseOfferings.academic_year,
-            CourseOfferings.batch
+            CourseOfferings.batch,
+            CourseOfferings.assigned_teacher_id,
+            Teachers.name AS assigned_teacher_name
         FROM CourseOfferings
         JOIN Courses ON CourseOfferings.course_code = Courses.course_code
+        LEFT JOIN Teachers ON CourseOfferings.assigned_teacher_id = Teachers.teacher_id
         ORDER BY CourseOfferings.academic_year DESC, CourseOfferings.offering_id
-    """)
+    """
+    )
 
     rows = cur.fetchall()
     conn.close()
@@ -66,17 +72,23 @@ def get_offering(offering_id):
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute("""
+    cur.execute(
+        """
         SELECT
             CourseOfferings.offering_id,
             CourseOfferings.course_code,
             Courses.course_name,
             CourseOfferings.academic_year,
-            CourseOfferings.batch
+            CourseOfferings.batch,
+            CourseOfferings.assigned_teacher_id,
+            Teachers.name AS assigned_teacher_name
         FROM CourseOfferings
         JOIN Courses ON CourseOfferings.course_code = Courses.course_code
+        LEFT JOIN Teachers ON CourseOfferings.assigned_teacher_id = Teachers.teacher_id
         WHERE CourseOfferings.offering_id = ?
-    """, (offering_id,))
+    """,
+        (offering_id,),
+    )
 
     row = cur.fetchone()
     conn.close()

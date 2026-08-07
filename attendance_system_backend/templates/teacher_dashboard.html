@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Teacher Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+  <div class="container">
+    <div class="top">
+      <div>
+        <h2>Teacher Dashboard</h2>
+        <p class="hint">{{ teacher_name }}</p>
+      </div>
+      <a href="{{ url_for('ui.logout') }}">Logout</a>
+    </div>
+
+    <div class="card">
+      <form method="get" action="{{ url_for('ui.teacher_dashboard') }}">
+        <label>Assigned Course Offering</label>
+        <select name="offering_id" required>
+          <option value="">Select offering</option>
+          {% for offering in offerings %}
+            <option value="{{ offering['offering_id'] }}" {% if selected_offering_id == offering['offering_id']|string %}selected{% endif %}>
+              {{ offering['course_code'] }} - {{ offering['course_name'] }} ({{ offering['academic_year'] }}, {{ offering['batch'] }})
+            </option>
+          {% endfor %}
+        </select>
+
+        <label>Attendance Session</label>
+        <select name="session_id">
+          <option value="">Select session</option>
+          {% for session in sessions %}
+            <option value="{{ session['session_id'] }}" {% if selected_session_id == session['session_id']|string %}selected{% endif %}>
+              Session {{ session['session_id'] }} - {{ session['date'] }} {{ session['start_time'] }}
+            </option>
+          {% endfor %}
+        </select>
+
+        <button type="submit">Load</button>
+      </form>
+    </div>
+
+    {% if selected_session_id %}
+    <div class="grid grid-2" style="margin-top:16px;">
+      <div class="card">
+        <h3>Present Students</h3>
+        {% if present_students %}
+        <table>
+          <thead>
+            <tr>
+              <th>Student ID</th>
+              <th>Name</th>
+              <th>Scan Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for student in present_students %}
+            <tr>
+              <td>{{ student['student_id'] }}</td>
+              <td>{{ student['name'] }}</td>
+              <td>{{ student['scan_time'] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <p>No present students in this session.</p>
+        {% endif %}
+      </div>
+
+      <div class="card">
+        <h3>Absent Students</h3>
+        {% if absent_students %}
+        <table>
+          <thead>
+            <tr>
+              <th>Student ID</th>
+              <th>Name</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for student in absent_students %}
+            <tr>
+              <td>{{ student['student_id'] }}</td>
+              <td>{{ student['name'] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <p>No absent students for this session.</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</body>
+</html>

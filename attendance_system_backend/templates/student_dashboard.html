@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Student Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+  <div class="container">
+    <div class="top">
+      <h2>Student Dashboard</h2>
+      <a href="{{ url_for('ui.logout') }}">Logout</a>
+    </div>
+
+    <div class="card">
+      <p><strong>Name:</strong> {{ student_name }}</p>
+      <p><strong>Student ID:</strong> {{ student_id }}</p>
+    </div>
+
+    <div style="margin-top:16px;">
+      {% if rows %}
+      <table>
+        <thead>
+          <tr>
+            <th>Session ID</th>
+            <th>Course Code</th>
+            <th>Course Name</th>
+            <th>Date</th>
+            <th>Session Start</th>
+            <th>Scan Time</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td>{{ row['session_id'] }}</td>
+            <td>{{ row['course_code'] }}</td>
+            <td>{{ row['course_name'] }}</td>
+            <td>{{ row['date'] }}</td>
+            <td>{{ row['start_time'] }}</td>
+            <td>{{ row['scan_time'] or '-' }}</td>
+            <td>{{ row['status'] }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p>No attendance records found.</p>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>
