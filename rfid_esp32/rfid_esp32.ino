@@ -9,7 +9,7 @@
 const char* ssid = "Green_House";
 const char* password = "@greenhouse";
 
-const char* SERVER = "http://192.168.1.7:5000";
+const char* SERVER = "https://rfid-attendance-system-c42q.onrender.com";
 
 #define MAX_OFFERINGS 20
 String offeringLabels[MAX_OFFERINGS];   // shown on screen, e.g. "ICT2207 (B24)"
