@@ -4,12 +4,15 @@
 #include <Adafruit_PN532.h>
 #include <ArduinoJson.h>
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 
 const char* ssid = "Green_House";
 const char* password = "@greenhouse";
 
 const char* SERVER = "https://rfid-attendance-system-c42q.onrender.com";
+const int HTTP_TIMEOUT_MS = 20000;
+const int HTTP_RETRIES = 3;
 
 #define MAX_OFFERINGS 20
 String offeringLabels[MAX_OFFERINGS];   // shown on screen, e.g. "ICT2207 (B24)"

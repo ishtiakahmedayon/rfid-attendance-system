@@ -1,22 +1,51 @@
 bool fetchOfferings()
 {
-    HTTPClient http;
-    http.begin(String(SERVER)+"/offerings");
+    int code = -1;
+    String payload = "";
 
-    int code = http.GET();
+    for (int attempt = 1; attempt <= HTTP_RETRIES; attempt++) {
+        WiFiClientSecure client;
+        client.setInsecure();
 
-    if (code != 200) {
+        HTTPClient http;
+        http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+        http.setTimeout(HTTP_TIMEOUT_MS);
+
+        bool started = http.begin(client, String(SERVER)+"/offerings");
+        if (!started) {
+            Serial.printf("[GET /offerings] attempt %d/%d begin failed\n", attempt, HTTP_RETRIES);
+            if (attempt < HTTP_RETRIES) delay(1000 * attempt);
+            continue;
+        }
+
+        code = http.GET();
+        payload = (code > 0) ? http.getString() : "";
+
+        Serial.printf("[GET /offerings] attempt %d/%d code=%d\n", attempt, HTTP_RETRIES, code);
+        Serial.println(payload);
+
         http.end();
-        return false;
+
+        if (code == 200) break;
+        if (attempt < HTTP_RETRIES) delay(1000 * attempt);
     }
 
-    String payload = http.getString();
-    http.end();
+    if (code != 200) {
+        display.clearDisplay();
+        display.println("Offerings Error");
+        display.print("Code: ");
+        display.println(code);
+        display.display();
+        delay(1200);
+        return false;
+    }
 
     DynamicJsonDocument doc(2048);   // bump this up if you add many offerings
     DeserializationError err = deserializeJson(doc, payload);
 
     if (err) {
+        Serial.print("[GET /offerings] JSON parse failed: ");
+        Serial.println(err.c_str());
         return false;
     }
 
