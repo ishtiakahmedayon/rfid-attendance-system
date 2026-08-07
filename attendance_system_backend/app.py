@@ -1,46 +1,35 @@
-from flask import Flask
+from flask import Flask, redirect, session, url_for
 
-from config import HOST, PORT
-
-from flask import Flask
-
+from config import DEBUG, HOST, PORT, SECRET_KEY
 from api.students import students_bp
 from api.courses import courses_bp
 from api.sessions import sessions_bp
 from api.attendance import attendance_bp
+from ui import ui_bp
 
 app = Flask(__name__)
+app.config["SECRET_KEY"] = SECRET_KEY
 
 app.register_blueprint(students_bp)
 app.register_blueprint(courses_bp)
 app.register_blueprint(sessions_bp)
 app.register_blueprint(attendance_bp)
-
-
-
+app.register_blueprint(ui_bp)
 
 
 @app.route("/")
 def home():
-
-    return """
-    <h2>RFID Attendance Server</h2>
-    <h3>Server Running</h3>
-    """
+    if session.get("role") == "teacher":
+        return redirect(url_for("ui.teacher_dashboard"))
+    if session.get("role") == "student":
+        return redirect(url_for("ui.student_dashboard"))
+    return redirect(url_for("ui.login"))
 
 
 @app.route("/health")
 def health():
-
-    return {
-        "status": "running"
-    }
+    return {"status": "running"}
 
 
 if __name__ == "__main__":
-
-    app.run(
-        host=HOST,
-        port=PORT,
-        debug=True
-    )
+    app.run(host=HOST, port=PORT, debug=DEBUG)
