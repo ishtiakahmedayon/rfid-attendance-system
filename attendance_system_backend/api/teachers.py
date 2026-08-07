@@ -28,8 +28,8 @@ def add_teacher():
 
         return jsonify({"success": True, "message": "Teacher Added"})
 
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 400
+    except Exception:
+        return jsonify({"success": False, "error": "Failed to add teacher"}), 400
 
     finally:
         conn.close()
