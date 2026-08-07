@@ -22,6 +22,22 @@ rfid_uid TEXT UNIQUE
 
 """)
 
+# ---------------- Teachers ----------------
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS Teachers(
+
+teacher_id TEXT PRIMARY KEY,
+
+name TEXT NOT NULL,
+
+password TEXT NOT NULL
+
+)
+
+""")
+
 # ---------------- Courses ----------------
 
 cursor.execute("""
@@ -52,7 +68,11 @@ academic_year INTEGER NOT NULL,
 
 batch TEXT NOT NULL,
 
+assigned_teacher_id TEXT,
+
 FOREIGN KEY(course_code) REFERENCES Courses(course_code),
+
+FOREIGN KEY(assigned_teacher_id) REFERENCES Teachers(teacher_id),
 
 UNIQUE(course_code, academic_year, batch)
 
