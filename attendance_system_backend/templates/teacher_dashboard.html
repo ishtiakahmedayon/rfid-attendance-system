@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Teacher Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; background: #f9fafb; }
+    .top { display: flex; justify-content: space-between; align-items: center; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; background: white; }
+    th, td { border: 1px solid #d1d5db; padding: 8px; text-align: left; }
+    th { background: #e5e7eb; }
+    .card { background: white; padding: 14px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <h2>Teacher Dashboard</h2>
+    <a href="{{ url_for('ui.logout') }}">Logout</a>
+  </div>
+
+  <div class="card">
+    <form method="get" action="{{ url_for('ui.teacher_dashboard') }}">
+      <label>Course</label>
+      <select name="course_code" required>
+        <option value="">Select course</option>
+        {% for course in courses %}
+          <option value="{{ course['course_code'] }}" {% if selected_course == course['course_code'] %}selected{% endif %}>
+            {{ course['course_code'] }} - {{ course['course_name'] }}
+          </option>
+        {% endfor %}
+      </select>
+      <label>Date</label>
+      <input type="date" name="date" value="{{ selected_date }}" required />
+      <button type="submit">View Attendance</button>
+    </form>
+  </div>
+
+  {% if selected_course and selected_date %}
+    <h3>Attendance for {{ selected_course }} on {{ selected_date }}</h3>
+    {% if rows %}
+      <table>
+        <thead>
+          <tr>
+            <th>Session ID</th>
+            <th>Start Time</th>
+            <th>Student ID</th>
+            <th>Name</th>
+            <th>Scan Time</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <td>{{ row['session_id'] }}</td>
+              <td>{{ row['start_time'] }}</td>
+              <td>{{ row['student_id'] }}</td>
+              <td>{{ row['name'] }}</td>
+              <td>{{ row['scan_time'] }}</td>
+              <td>{{ row['status'] }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No attendance found for this course and day.</p>
+    {% endif %}
+  {% endif %}
+</body>
+</html>
