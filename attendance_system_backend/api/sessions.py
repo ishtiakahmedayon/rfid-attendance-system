@@ -53,3 +53,68 @@ def start_session():
         "session_id":session_id,
         "offering_id":offering_id
     })
+
+
+# ----------------------------
+# Update Session
+# ----------------------------
+@sessions_bp.route("/sessions/<int:session_id>", methods=["PUT"])
+@require_api_key
+def update_session(session_id):
+
+    data = request.get_json() or {}
+
+    allowed_fields = ["offering_id", "date", "start_time", "end_time", "status"]
+    updates = {k: v for k, v in data.items() if k in allowed_fields}
+
+    if not updates:
+        return jsonify({"success": False, "error": "No valid fields to update"}), 400
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    try:
+        set_clause = ", ".join(f"{field} = ?" for field in updates)
+        values = list(updates.values()) + [session_id]
+
+        cur.execute(f"UPDATE Sessions SET {set_clause} WHERE session_id = ?", values)
+
+        if cur.rowcount == 0:
+            return jsonify({"success": False, "message": "Session Not Found"}), 404
+
+        conn.commit()
+
+        return jsonify({"success": True, "message": "Session Updated"})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+
+    finally:
+        conn.close()
+
+
+# ----------------------------
+# Delete Session
+# ----------------------------
+@sessions_bp.route("/sessions/<int:session_id>", methods=["DELETE"])
+@require_api_key
+def delete_session(session_id):
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("DELETE FROM Sessions WHERE session_id = ?", (session_id,))
+
+        if cur.rowcount == 0:
+            return jsonify({"success": False, "message": "Session Not Found"}), 404
+
+        conn.commit()
+
+        return jsonify({"success": True, "message": "Session Deleted"})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+
+    finally:
+        conn.close()

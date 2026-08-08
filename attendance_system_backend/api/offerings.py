@@ -101,3 +101,69 @@ def get_offering(offering_id):
         return jsonify({"success": False, "message": "Offering Not Found"}), 404
 
     return jsonify(dict(row))
+
+# ----------------------------
+# Update Offering
+# ----------------------------
+@offerings_bp.route("/offerings/<int:offering_id>", methods=["PUT"])
+@require_api_key
+def update_offering(offering_id):
+
+    data = request.get_json() or {}
+
+    allowed_fields = ["course_code", "academic_year", "batch", "assigned_teacher_id"]
+    updates = {k: v for k, v in data.items() if k in allowed_fields}
+
+    if not updates:
+        return jsonify({"success": False, "error": "No valid fields to update"}), 400
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    try:
+        set_clause = ", ".join(f"{field} = ?" for field in updates)
+        values = list(updates.values()) + [offering_id]
+
+        cur.execute(
+            f"UPDATE CourseOfferings SET {set_clause} WHERE offering_id = ?", values
+        )
+
+        if cur.rowcount == 0:
+            return jsonify({"success": False, "message": "Offering Not Found"}), 404
+
+        conn.commit()
+
+        return jsonify({"success": True, "message": "Offering Updated"})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+
+    finally:
+        conn.close()
+
+
+# ----------------------------
+# Delete Offering
+# ----------------------------
+@offerings_bp.route("/offerings/<int:offering_id>", methods=["DELETE"])
+@require_api_key
+def delete_offering(offering_id):
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("DELETE FROM CourseOfferings WHERE offering_id = ?", (offering_id,))
+
+        if cur.rowcount == 0:
+            return jsonify({"success": False, "message": "Offering Not Found"}), 404
+
+        conn.commit()
+
+        return jsonify({"success": True, "message": "Offering Deleted"})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+
+    finally:
+        conn.close()
