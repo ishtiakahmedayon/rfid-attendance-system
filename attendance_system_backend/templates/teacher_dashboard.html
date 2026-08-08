@@ -2,96 +2,106 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Teacher Dashboard</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
 </head>
 <body>
   <div class="container">
     <div class="top">
-      <div>
-        <h2>Teacher Dashboard</h2>
-        <p class="hint">{{ teacher_name }}</p>
+      <div class="brand">
+        <div class="brand-mark">ID</div>
+        <div>
+          <h2>Teacher Dashboard</h2>
+          <p class="hint" style="margin:0;">{{ teacher_name }}</p>
+        </div>
       </div>
-      <a href="{{ url_for('ui.logout') }}">Logout</a>
+      <a class="logout-btn" href="{{ url_for('ui.logout') }}">Logout</a>
     </div>
 
+    {% if offerings %}
+    <div class="tab-bar">
+      {% for offering in offerings %}
+        <a class="tab-link {% if selected_offering_id == offering['offering_id']|string %}active{% endif %}"
+           href="{{ url_for('ui.teacher_dashboard', offering_id=offering['offering_id']) }}">
+          {{ offering['course_code'] }} &nbsp;({{ offering['academic_year'] }}, {{ offering['batch'] }})
+        </a>
+      {% endfor %}
+    </div>
+
+    <div class="section-title">Attendance by Date</div>
+
+    {% if sessions_data %}
+      {% for s in sessions_data %}
+      <div class="card session-card">
+        <div class="session-head">
+          <div>
+            <p class="session-date">{{ s.date }}</p>
+            <p class="session-time">{{ s.start_time }} – {{ s.end_time }} &nbsp;•&nbsp; Session {{ s.session_id }} &nbsp;•&nbsp; {{ s.status }}</p>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <span class="count-pill count-present">{{ s.present_count }} Present</span>
+            <span class="count-pill count-absent">{{ s.absent_count }} Absent</span>
+          </div>
+        </div>
+
+        <details class="session-list">
+          <summary></summary>
+          <div class="grid grid-2" style="margin-top:12px;">
+            <div>
+              <p class="section-title" style="margin-top:0;">Present ({{ s.present_count }})</p>
+              {% if s.present_students %}
+              <table>
+                <thead>
+                  <tr><th>ID</th><th>Name</th><th>Scan Time</th></tr>
+                </thead>
+                <tbody>
+                  {% for student in s.present_students %}
+                  <tr>
+                    <td>{{ student.student_id }}</td>
+                    <td>{{ student.name }}</td>
+                    <td>{{ student.scan_time }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              {% else %}
+              <p class="empty-note">No students present.</p>
+              {% endif %}
+            </div>
+            <div>
+              <p class="section-title" style="margin-top:0;">Absent ({{ s.absent_count }})</p>
+              {% if s.absent_students %}
+              <table>
+                <thead>
+                  <tr><th>ID</th><th>Name</th></tr>
+                </thead>
+                <tbody>
+                  {% for student in s.absent_students %}
+                  <tr>
+                    <td>{{ student.student_id }}</td>
+                    <td>{{ student.name }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              {% else %}
+              <p class="empty-note">No students absent.</p>
+              {% endif %}
+            </div>
+          </div>
+        </details>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="card">
+        <p class="empty-note">No sessions recorded yet for this course.</p>
+      </div>
+    {% endif %}
+
+    {% else %}
     <div class="card">
-      <form method="get" action="{{ url_for('ui.teacher_dashboard') }}">
-        <label>Assigned Course Offering</label>
-        <select name="offering_id" required>
-          <option value="">Select offering</option>
-          {% for offering in offerings %}
-            <option value="{{ offering['offering_id'] }}" {% if selected_offering_id == offering['offering_id']|string %}selected{% endif %}>
-              {{ offering['course_code'] }} - {{ offering['course_name'] }} ({{ offering['academic_year'] }}, {{ offering['batch'] }})
-            </option>
-          {% endfor %}
-        </select>
-
-        <label>Attendance Session</label>
-        <select name="session_id">
-          <option value="">Select session</option>
-          {% for session in sessions %}
-            <option value="{{ session['session_id'] }}" {% if selected_session_id == session['session_id']|string %}selected{% endif %}>
-              Session {{ session['session_id'] }} - {{ session['date'] }} {{ session['start_time'] }}
-            </option>
-          {% endfor %}
-        </select>
-
-        <button type="submit">Load</button>
-      </form>
-    </div>
-
-    {% if selected_session_id %}
-    <div class="grid grid-2" style="margin-top:16px;">
-      <div class="card">
-        <h3>Present Students</h3>
-        {% if present_students %}
-        <table>
-          <thead>
-            <tr>
-              <th>Student ID</th>
-              <th>Name</th>
-              <th>Scan Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for student in present_students %}
-            <tr>
-              <td>{{ student['student_id'] }}</td>
-              <td>{{ student['name'] }}</td>
-              <td>{{ student['scan_time'] }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        {% else %}
-        <p>No present students in this session.</p>
-        {% endif %}
-      </div>
-
-      <div class="card">
-        <h3>Absent Students</h3>
-        {% if absent_students %}
-        <table>
-          <thead>
-            <tr>
-              <th>Student ID</th>
-              <th>Name</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for student in absent_students %}
-            <tr>
-              <td>{{ student['student_id'] }}</td>
-              <td>{{ student['name'] }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        {% else %}
-        <p>No absent students for this session.</p>
-        {% endif %}
-      </div>
+      <p class="empty-note">No course offerings are assigned to you yet.</p>
     </div>
     {% endif %}
   </div>

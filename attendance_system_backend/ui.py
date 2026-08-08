@@ -85,7 +85,6 @@ def logout():
 def teacher_dashboard():
     teacher_id = session.get("teacher_id")
     selected_offering_id = request.args.get("offering_id", "").strip()
-    selected_session_id = request.args.get("session_id", "").strip()
 
     conn = get_connection()
     cur = conn.cursor()
@@ -107,12 +106,18 @@ def teacher_dashboard():
     )
     offerings = cur.fetchall()
 
-    offering_ids = {str(row["offering_id"]) for row in offerings}
-    sessions = []
-    selected_offering = None
+    offering_ids = [str(row["offering_id"]) for row in offerings]
 
-    if selected_offering_id and selected_offering_id in offering_ids:
-        selected_offering = selected_offering_id
+    # Default to the first assigned course offering (tab-based view instead
+    # of a manual offering/session picker).
+    if selected_offering_id not in offering_ids and offering_ids:
+        selected_offering_id = offering_ids[0]
+    elif not offering_ids:
+        selected_offering_id = ""
+
+    sessions_data = []
+
+    if selected_offering_id in offering_ids:
         cur.execute(
             """
             SELECT session_id, date, start_time, end_time, status
@@ -124,21 +129,7 @@ def teacher_dashboard():
         )
         sessions = cur.fetchall()
 
-    present_students = []
-    absent_students = []
-
-    if selected_offering and selected_session_id:
-        cur.execute(
-            """
-            SELECT 1
-            FROM Sessions
-            WHERE session_id = ? AND offering_id = ?
-            """,
-            (selected_session_id, selected_offering),
-        )
-        session_exists = cur.fetchone() is not None
-
-        if session_exists:
+        for sess in sessions:
             cur.execute(
                 """
                 SELECT
@@ -155,10 +146,12 @@ def teacher_dashboard():
                   AND Enrollments.status = 'Active'
                 ORDER BY Students.name
                 """,
-                (selected_session_id, selected_offering),
+                (sess["session_id"], selected_offering_id),
             )
             enrolled_rows = cur.fetchall()
 
+            present_students = []
+            absent_students = []
             for row in enrolled_rows:
                 item = {
                     "student_id": row["student_id"],
@@ -171,17 +164,28 @@ def teacher_dashboard():
                 else:
                     absent_students.append(item)
 
+            sessions_data.append(
+                {
+                    "session_id": sess["session_id"],
+                    "date": sess["date"],
+                    "start_time": sess["start_time"],
+                    "end_time": sess["end_time"],
+                    "status": sess["status"],
+                    "present_count": len(present_students),
+                    "absent_count": len(absent_students),
+                    "present_students": present_students,
+                    "absent_students": absent_students,
+                }
+            )
+
     conn.close()
 
     return render_template(
         "teacher_dashboard.html",
         teacher_name=session.get("teacher_name"),
         offerings=offerings,
-        sessions=sessions,
         selected_offering_id=selected_offering_id,
-        selected_session_id=selected_session_id,
-        present_students=present_students,
-        absent_students=absent_students,
+        sessions_data=sessions_data,
     )
 
 
@@ -197,6 +201,7 @@ def student_dashboard():
         """
         SELECT
             Sessions.session_id,
+            CourseOfferings.offering_id,
             Courses.course_code,
             Courses.course_name,
             Sessions.date,
@@ -212,7 +217,7 @@ def student_dashboard():
             AND Attendance.student_id = Enrollments.student_id
         WHERE Enrollments.student_id = ?
           AND Enrollments.status = 'Active'
-        ORDER BY Sessions.date DESC, Sessions.start_time DESC
+        ORDER BY Courses.course_name, Sessions.date DESC, Sessions.start_time DESC
         """,
         (student_id,),
     )
@@ -220,9 +225,55 @@ def student_dashboard():
 
     conn.close()
 
+    # Group each attendance row under its enrolled course offering and
+    # compute present/absent totals, attendance percentage, and the list
+    # of dates the student was absent.
+    courses_by_offering = {}
+    for row in rows:
+        key = row["offering_id"]
+        course = courses_by_offering.setdefault(
+            key,
+            {
+                "offering_id": row["offering_id"],
+                "course_code": row["course_code"],
+                "course_name": row["course_name"],
+                "present": 0,
+                "absent": 0,
+                "total": 0,
+                "absent_days": [],
+            },
+        )
+        course["total"] += 1
+        if row["status"] == "Present":
+            course["present"] += 1
+        else:
+            course["absent"] += 1
+            course["absent_days"].append(
+                {
+                    "session_id": row["session_id"],
+                    "date": row["date"],
+                    "start_time": row["start_time"],
+                }
+            )
+
+    courses = []
+    for course in courses_by_offering.values():
+        percentage = (course["present"] / course["total"] * 100) if course["total"] else 0
+        if percentage < 60:
+            level = "red"
+        elif percentage >= 80:
+            level = "good"
+        else:
+            level = "warn"
+        course["percentage"] = round(percentage, 1)
+        course["level"] = level
+        courses.append(course)
+
+    courses.sort(key=lambda c: c["course_name"])
+
     return render_template(
         "student_dashboard.html",
         student_name=session.get("student_name"),
         student_id=student_id,
-        rows=rows,
+        courses=courses,
     )

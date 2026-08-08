@@ -2,53 +2,67 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Student Dashboard</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
 </head>
 <body>
   <div class="container">
     <div class="top">
-      <h2>Student Dashboard</h2>
-      <a href="{{ url_for('ui.logout') }}">Logout</a>
+      <div class="brand">
+        <div class="brand-mark">ID</div>
+        <div>
+          <h2>Student Dashboard</h2>
+          <p class="hint" style="margin:0;">{{ student_name }} &nbsp;•&nbsp; ID: {{ student_id }}</p>
+        </div>
+      </div>
+      <a class="logout-btn" href="{{ url_for('ui.logout') }}">Logout</a>
     </div>
 
-    <div class="card">
-      <p><strong>Name:</strong> {{ student_name }}</p>
-      <p><strong>Student ID:</strong> {{ student_id }}</p>
-    </div>
+    <div class="section-title">Enrolled Courses</div>
 
-    <div style="margin-top:16px;">
-      {% if rows %}
-      <table>
-        <thead>
-          <tr>
-            <th>Session ID</th>
-            <th>Course Code</th>
-            <th>Course Name</th>
-            <th>Date</th>
-            <th>Session Start</th>
-            <th>Scan Time</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in rows %}
-          <tr>
-            <td>{{ row['session_id'] }}</td>
-            <td>{{ row['course_code'] }}</td>
-            <td>{{ row['course_name'] }}</td>
-            <td>{{ row['date'] }}</td>
-            <td>{{ row['start_time'] }}</td>
-            <td>{{ row['scan_time'] or '-' }}</td>
-            <td>{{ row['status'] }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <p>No attendance records found.</p>
-      {% endif %}
-    </div>
+    {% if courses %}
+      <div class="grid" style="gap:14px;">
+        {% for course in courses %}
+        <div class="card course-card">
+          <div class="course-head">
+            <div>
+              <p class="course-title">{{ course.course_name }}</p>
+              <p class="course-code">{{ course.course_code }}</p>
+            </div>
+            <span class="badge badge-{{ course.level }}">{{ course.percentage }}%</span>
+          </div>
+
+          <div class="progress-track">
+            <div class="progress-fill badge-{{ course.level }}" style="width: {{ course.percentage }}%;"></div>
+          </div>
+
+          <div class="stat-row">
+            <div class="stat"><strong>{{ course.total }}</strong>Total Sessions</div>
+            <div class="stat"><strong>{{ course.present }}</strong>Present</div>
+            <div class="stat"><strong>{{ course.absent }}</strong>Absent</div>
+          </div>
+
+          <details class="absent-toggle">
+            <summary>Absent days ({{ course.absent }})</summary>
+            {% if course.absent_days %}
+            <ul>
+              {% for day in course.absent_days %}
+              <li>{{ day.date }} &nbsp;<span class="hint">{{ day.start_time }}</span></li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <p class="empty-note">No absences recorded. Great job!</p>
+            {% endif %}
+          </details>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="card">
+        <p class="empty-note">No enrolled courses or attendance records found.</p>
+      </div>
+    {% endif %}
   </div>
 </body>
 </html>
