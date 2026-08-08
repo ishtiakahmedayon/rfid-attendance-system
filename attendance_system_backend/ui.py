@@ -226,8 +226,8 @@ def student_dashboard():
     conn.close()
 
     # Group each attendance row under its enrolled course offering and
-    # compute present/absent totals, attendance percentage, and the list
-    # of dates the student was absent.
+    # compute present/absent totals, attendance percentage, and the full
+    # session-by-session history (date, time, present/absent status).
     courses_by_offering = {}
     for row in rows:
         key = row["offering_id"]
@@ -240,7 +240,7 @@ def student_dashboard():
                 "present": 0,
                 "absent": 0,
                 "total": 0,
-                "absent_days": [],
+                "sessions": [],
             },
         )
         course["total"] += 1
@@ -248,13 +248,14 @@ def student_dashboard():
             course["present"] += 1
         else:
             course["absent"] += 1
-            course["absent_days"].append(
-                {
-                    "session_id": row["session_id"],
-                    "date": row["date"],
-                    "start_time": row["start_time"],
-                }
-            )
+        course["sessions"].append(
+            {
+                "session_id": row["session_id"],
+                "date": row["date"],
+                "start_time": row["start_time"],
+                "status": row["status"],
+            }
+        )
 
     courses = []
     for course in courses_by_offering.values():

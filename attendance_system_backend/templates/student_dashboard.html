@@ -44,15 +44,34 @@
           </div>
 
           <details class="absent-toggle">
-            <summary>Absent days ({{ course.absent }})</summary>
-            {% if course.absent_days %}
-            <ul>
-              {% for day in course.absent_days %}
-              <li>{{ day.date }} &nbsp;<span class="hint">{{ day.start_time }}</span></li>
-              {% endfor %}
-            </ul>
+            <summary>View all sessions ({{ course.total }})</summary>
+            {% if course.sessions %}
+            <table style="margin-top:10px;">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for sess in course.sessions %}
+                <tr>
+                  <td>{{ sess.date }}</td>
+                  <td>{{ sess.start_time }}</td>
+                  <td>
+                    {% if sess.status == 'Present' %}
+                    <span class="badge badge-good">Present</span>
+                    {% else %}
+                    <span class="badge badge-red">Absent</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
             {% else %}
-            <p class="empty-note">No absences recorded. Great job!</p>
+            <p class="empty-note">No sessions recorded yet.</p>
             {% endif %}
           </details>
         </div>
