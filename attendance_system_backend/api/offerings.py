@@ -102,68 +102,111 @@ def get_offering(offering_id):
 
     return jsonify(dict(row))
 
-# ----------------------------
-# Update Offering
-# ----------------------------
-@offerings_bp.route("/offerings/<int:offering_id>", methods=["PUT"])
+@offerings_bp.route("/offerings/<int:offering_id>", methods=["DELETE"])
 @require_api_key
-def update_offering(offering_id):
-
-    data = request.get_json() or {}
-
-    allowed_fields = ["course_code", "academic_year", "batch", "assigned_teacher_id"]
-    updates = {k: v for k, v in data.items() if k in allowed_fields}
-
-    if not updates:
-        return jsonify({"success": False, "error": "No valid fields to update"}), 400
-
+def delete_offering(offering_id):
     conn = get_connection()
     cur = conn.cursor()
 
     try:
-        set_clause = ", ".join(f"{field} = ?" for field in updates)
-        values = list(updates.values()) + [offering_id]
-
         cur.execute(
-            f"UPDATE CourseOfferings SET {set_clause} WHERE offering_id = ?", values
+            "DELETE FROM CourseOfferings WHERE offering_id = ?",
+            (offering_id,)
         )
 
         if cur.rowcount == 0:
-            return jsonify({"success": False, "message": "Offering Not Found"}), 404
+            return jsonify({
+                "success": False,
+                "error": "Offering not found"
+            }), 404
 
         conn.commit()
 
-        return jsonify({"success": True, "message": "Offering Updated"})
+        return jsonify({
+            "success": True,
+            "message": "Offering deleted"
+        })
 
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 400
+        conn.rollback()
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
 
     finally:
         conn.close()
 
 
-# ----------------------------
-# Delete Offering
-# ----------------------------
-@offerings_bp.route("/offerings/<int:offering_id>", methods=["DELETE"])
+@offerings_bp.route("/offerings/<int:offering_id>", methods=["PUT"])
 @require_api_key
-def delete_offering(offering_id):
+def update_offering(offering_id):
+    data = request.get_json()
 
     conn = get_connection()
     cur = conn.cursor()
 
     try:
-        cur.execute("DELETE FROM CourseOfferings WHERE offering_id = ?", (offering_id,))
+        # Get existing offering
+        cur.execute(
+            """
+            SELECT course_code, academic_year, batch, assigned_teacher_id
+            FROM CourseOfferings
+            WHERE offering_id = ?
+            """,
+            (offering_id,)
+        )
 
-        if cur.rowcount == 0:
-            return jsonify({"success": False, "message": "Offering Not Found"}), 404
+        existing = cur.fetchone()
+
+        if not existing:
+            return jsonify({
+                "success": False,
+                "error": "Offering not found"
+            }), 404
+
+        # Keep existing values if they aren't provided
+        course_code = data.get("course_code", existing["course_code"])
+        academic_year = data.get("academic_year", existing["academic_year"])
+        batch = data.get("batch", existing["batch"])
+        assigned_teacher_id = data.get(
+            "assigned_teacher_id",
+            existing["assigned_teacher_id"]
+        )
+
+        cur.execute(
+            """
+            UPDATE CourseOfferings
+            SET course_code = ?,
+                academic_year = ?,
+                batch = ?,
+                assigned_teacher_id = ?
+            WHERE offering_id = ?
+            """,
+            (
+                course_code,
+                academic_year,
+                batch,
+                assigned_teacher_id,
+                offering_id
+            )
+        )
 
         conn.commit()
 
-        return jsonify({"success": True, "message": "Offering Deleted"})
+        return jsonify({
+            "success": True,
+            "message": "Offering updated",
+            "offering_id": offering_id
+        })
 
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 400
+        conn.rollback()
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
 
     finally:
         conn.close()
