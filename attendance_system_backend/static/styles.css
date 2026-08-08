@@ -472,6 +472,64 @@ details.session-list[open] summary::before {
   content: "▾ Hide full list";
 }
 
+/* ---------- Session control (teacher start/end) ---------- */
+.session-control {
+  margin-bottom: 18px;
+}
+
+.session-control form {
+  margin: 0;
+}
+
+.session-control form button {
+  margin: 0;
+  width: auto;
+  min-width: 160px;
+}
+
+.session-control-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.session-control-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.live-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--good-strong);
+  box-shadow: 0 0 0 4px var(--good-soft);
+  flex-shrink: 0;
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, var(--danger), #b91c1c);
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.3);
+}
+
+button:disabled {
+  background: #cbd2e0;
+  color: #fff;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+  width: auto;
+  min-width: 160px;
+}
+
 .section-title {
   font-size: 13px;
   font-weight: 700;

@@ -1,10 +1,12 @@
 from flask import Blueprint, request, jsonify
 from database import get_connection
+from api.auth import require_api_key
 
 offerings_bp = Blueprint("offerings", __name__)
 
 
 @offerings_bp.route("/offerings", methods=["POST"])
+@require_api_key
 def add_offering():
 
     data = request.get_json()
@@ -38,6 +40,7 @@ def add_offering():
 
 
 @offerings_bp.route("/offerings", methods=["GET"])
+@require_api_key
 def get_offerings():
 
     conn = get_connection()
@@ -67,6 +70,7 @@ def get_offerings():
 
 
 @offerings_bp.route("/offerings/<int:offering_id>")
+@require_api_key
 def get_offering(offering_id):
 
     conn = get_connection()

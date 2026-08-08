@@ -1,3 +1,4 @@
+from datetime import datetime
 from functools import wraps
 
 from flask import Blueprint, redirect, render_template, request, session, url_for
@@ -178,7 +179,33 @@ def teacher_dashboard():
                 }
             )
 
+    # There's a single physical device today, so only one session can be
+    # actively running at any moment -- figure out whether that's this
+    # course's session, someone else's, or nothing at all, so the
+    # dashboard can show the right Start/End controls.
+    cur.execute(
+        """
+        SELECT
+            Sessions.session_id,
+            Sessions.offering_id,
+            CourseOfferings.course_code
+        FROM Sessions
+        JOIN CourseOfferings ON CourseOfferings.offering_id = Sessions.offering_id
+        WHERE Sessions.status = 'Open'
+        ORDER BY Sessions.session_id DESC
+        LIMIT 1
+        """
+    )
+    global_open = cur.fetchone()
+
     conn.close()
+
+    open_session_here = bool(
+        global_open and str(global_open["offering_id"]) == str(selected_offering_id)
+    )
+    open_elsewhere_course_code = None
+    if global_open and not open_session_here:
+        open_elsewhere_course_code = global_open["course_code"]
 
     return render_template(
         "teacher_dashboard.html",
@@ -186,7 +213,89 @@ def teacher_dashboard():
         offerings=offerings,
         selected_offering_id=selected_offering_id,
         sessions_data=sessions_data,
+        open_session_here=open_session_here,
+        open_elsewhere_course_code=open_elsewhere_course_code,
     )
+
+
+@ui_bp.route("/teacher/session/start", methods=["POST"])
+@login_required(role="teacher")
+def start_session_remote():
+    teacher_id = session.get("teacher_id")
+    offering_id = request.form.get("offering_id", "").strip()
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT 1 FROM CourseOfferings
+        WHERE offering_id = ? AND assigned_teacher_id = ?
+        """,
+        (offering_id, teacher_id),
+    )
+    owns_offering = cur.fetchone() is not None
+
+    if owns_offering:
+        now = datetime.now()
+        date_str = now.strftime("%Y-%m-%d")
+        time_str = now.strftime("%H:%M:%S")
+
+        # Only one device exists right now, so only one session can be
+        # open at a time -- close out anything left open before starting
+        # the new one (mirrors the same safeguard the device-side
+        # /start_session endpoint already applies).
+        cur.execute(
+            "UPDATE Sessions SET status='Closed', end_time=? WHERE status='Open'",
+            (time_str,),
+        )
+        cur.execute(
+            """
+            INSERT INTO Sessions (offering_id, date, start_time, status)
+            VALUES (?, ?, ?, 'Open')
+            """,
+            (offering_id, date_str, time_str),
+        )
+        conn.commit()
+
+    conn.close()
+
+    return redirect(url_for("ui.teacher_dashboard", offering_id=offering_id))
+
+
+@ui_bp.route("/teacher/session/stop", methods=["POST"])
+@login_required(role="teacher")
+def stop_session_remote():
+    teacher_id = session.get("teacher_id")
+    offering_id = request.form.get("offering_id", "").strip()
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT 1 FROM CourseOfferings
+        WHERE offering_id = ? AND assigned_teacher_id = ?
+        """,
+        (offering_id, teacher_id),
+    )
+    owns_offering = cur.fetchone() is not None
+
+    if owns_offering:
+        time_str = datetime.now().strftime("%H:%M:%S")
+        cur.execute(
+            """
+            UPDATE Sessions
+            SET status = 'Closed', end_time = ?
+            WHERE offering_id = ? AND status = 'Open'
+            """,
+            (time_str, offering_id),
+        )
+        conn.commit()
+
+    conn.close()
+
+    return redirect(url_for("ui.teacher_dashboard", offering_id=offering_id))
 
 
 @ui_bp.route("/student/dashboard")

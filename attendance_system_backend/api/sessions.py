@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from database import get_connection
+from api.auth import require_api_key
 from datetime import datetime
 
 sessions_bp = Blueprint("sessions", __name__)
@@ -9,6 +10,7 @@ sessions_bp = Blueprint("sessions", __name__)
 # Start Session
 # ------------------------
 @sessions_bp.route("/start_session", methods=["POST"])
+@require_api_key
 def start_session():
 
     data = request.get_json()

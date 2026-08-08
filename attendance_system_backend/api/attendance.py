@@ -1,9 +1,11 @@
 from flask import Blueprint, request, jsonify
 from database import get_connection
+from api.auth import require_api_key
 from datetime import datetime
 
 attendance_bp = Blueprint("attendance", __name__)
 @attendance_bp.route("/scan", methods=["POST"])
+@require_api_key
 def scan():
 
     data = request.get_json()
@@ -141,6 +143,7 @@ def scan():
     })
 
 @attendance_bp.route("/attendance/<int:session_id>")
+@require_api_key
 def attendance(session_id):
 
     conn = get_connection()
@@ -185,6 +188,7 @@ def attendance(session_id):
 
 
 @attendance_bp.route("/end_session", methods=["POST"])
+@require_api_key
 def end_session():
 
     data = request.get_json()

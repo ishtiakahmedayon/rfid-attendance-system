@@ -1,10 +1,12 @@
 from flask import Blueprint, request, jsonify
 from database import get_connection
+from api.auth import require_api_key
 
 enrollments_bp = Blueprint("enrollments", __name__)
 
 
 @enrollments_bp.route("/enroll", methods=["POST"])
+@require_api_key
 def enroll_student():
 
     data = request.get_json()
@@ -33,6 +35,7 @@ def enroll_student():
 
 
 @enrollments_bp.route("/enrollments/<int:offering_id>")
+@require_api_key
 def get_enrollments(offering_id):
 
     conn = get_connection()

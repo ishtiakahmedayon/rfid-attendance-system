@@ -29,6 +29,35 @@
       {% endfor %}
     </div>
 
+    <div class="card session-control">
+      {% if open_session_here %}
+        <div class="session-control-row">
+          <span class="live-dot"></span>
+          <div>
+            <p class="session-control-title">Session is live on the device</p>
+            <p class="hint" style="margin:0;">The ESP32 is currently accepting scans for this course.</p>
+          </div>
+        </div>
+        <form method="post" action="{{ url_for('ui.stop_session_remote') }}">
+          <input type="hidden" name="offering_id" value="{{ selected_offering_id }}" />
+          <button type="submit" class="btn-danger">End Session</button>
+        </form>
+      {% elif open_elsewhere_course_code %}
+        <p class="session-control-title">Device busy</p>
+        <p class="hint" style="margin:0 0 10px;">
+          A session is currently running for {{ open_elsewhere_course_code }}. End that one before starting this course.
+        </p>
+        <button type="button" disabled>Start Session</button>
+      {% else %}
+        <p class="session-control-title">Ready to start</p>
+        <p class="hint" style="margin:0 0 10px;">Starting a session tells the device to begin taking attendance immediately.</p>
+        <form method="post" action="{{ url_for('ui.start_session_remote') }}">
+          <input type="hidden" name="offering_id" value="{{ selected_offering_id }}" />
+          <button type="submit">Start Session</button>
+        </form>
+      {% endif %}
+    </div>
+
     <div class="section-title">Attendance by Date</div>
 
     {% if sessions_data %}

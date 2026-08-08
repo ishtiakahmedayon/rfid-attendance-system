@@ -8,6 +8,7 @@ from api.attendance import attendance_bp
 from api.offerings import offerings_bp
 from api.enrollments import enrollments_bp
 from api.teachers import teachers_bp
+from api.device import device_bp
 from ui import ui_bp
 
 app = Flask(__name__)
@@ -20,6 +21,7 @@ app.register_blueprint(attendance_bp)
 app.register_blueprint(offerings_bp)
 app.register_blueprint(enrollments_bp)
 app.register_blueprint(teachers_bp)
+app.register_blueprint(device_bp)
 app.register_blueprint(ui_bp)
 
 

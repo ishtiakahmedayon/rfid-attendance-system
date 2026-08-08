@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from database import get_connection
+from api.auth import require_api_key
 
 courses_bp = Blueprint("courses", __name__)
 
@@ -7,6 +8,7 @@ courses_bp = Blueprint("courses", __name__)
 # Add Course
 # ----------------------------
 @courses_bp.route("/courses", methods=["POST"])
+@require_api_key
 def add_course():
 
     data = request.get_json()
@@ -51,6 +53,7 @@ def add_course():
 # View Courses
 # ----------------------------
 @courses_bp.route("/courses", methods=["GET"])
+@require_api_key
 def get_courses():
 
     conn = get_connection()
