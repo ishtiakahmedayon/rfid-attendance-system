@@ -357,6 +357,46 @@ def stop_session_remote():
     return redirect(url_for("ui.teacher_dashboard", offering_id=offering_id))
 
 
+@ui_bp.route("/teacher/session/cancel", methods=["POST"])
+@login_required(role="teacher")
+def cancel_session_remote():
+    teacher_id = session.get("teacher_id")
+    offering_id = request.form.get("offering_id", "").strip()
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT 1 FROM CourseOfferings
+        WHERE offering_id = ? AND assigned_teacher_id = ?
+        """,
+        (offering_id, teacher_id),
+    )
+    owns_offering = cur.fetchone() is not None
+
+    if owns_offering:
+        cur.execute(
+            "SELECT session_id FROM Sessions WHERE offering_id = ? AND status = 'Open'",
+            (offering_id,),
+        )
+        open_session = cur.fetchone()
+
+        if open_session:
+            session_id = open_session["session_id"]
+            # Cancel discards the session entirely -- unlike End, this
+            # session should never count as a held class or show up in
+            # anyone's attendance history, so both the scan records and
+            # the session row itself are removed.
+            cur.execute("DELETE FROM Attendance WHERE session_id = ?", (session_id,))
+            cur.execute("DELETE FROM Sessions WHERE session_id = ?", (session_id,))
+            conn.commit()
+
+    conn.close()
+
+    return redirect(url_for("ui.teacher_dashboard", offering_id=offering_id))
+
+
 @ui_bp.route("/student/dashboard")
 @login_required(role="student")
 def student_dashboard():

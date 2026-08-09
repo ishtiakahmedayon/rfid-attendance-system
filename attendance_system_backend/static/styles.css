@@ -558,6 +558,50 @@ details.session-list[open] summary::before {
   box-shadow: 0 6px 16px rgba(220, 38, 38, 0.3);
 }
 
+.session-control-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.session-control-actions form {
+  margin: 0;
+}
+
+.btn-ghost-danger {
+  background: #fff;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  box-shadow: none;
+  width: auto;
+  min-width: 160px;
+}
+
+.btn-ghost-danger:hover {
+  background: var(--danger-soft);
+  box-shadow: none;
+}
+
+/* ---------- Collapsible class overview ---------- */
+.overview-toggle summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.overview-toggle summary::-webkit-details-marker {
+  display: none;
+}
+
+.overview-toggle summary::before {
+  content: "▸ ";
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.overview-toggle[open] summary::before {
+  content: "▾ ";
+}
+
 button:disabled {
   background: #cbd2e0;
   color: #fff;

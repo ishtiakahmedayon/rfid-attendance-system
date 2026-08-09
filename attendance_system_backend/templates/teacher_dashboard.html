@@ -38,10 +38,20 @@
             <p class="hint" style="margin:0;">The ESP32 is currently accepting scans for this course.</p>
           </div>
         </div>
-        <form method="post" action="{{ url_for('ui.stop_session_remote') }}">
-          <input type="hidden" name="offering_id" value="{{ selected_offering_id }}" />
-          <button type="submit" class="btn-danger">End Session</button>
-        </form>
+        <div class="session-control-actions">
+          <form method="post" action="{{ url_for('ui.stop_session_remote') }}">
+            <input type="hidden" name="offering_id" value="{{ selected_offering_id }}" />
+            <button type="submit" class="btn-danger">End Session</button>
+          </form>
+          <form method="post" action="{{ url_for('ui.cancel_session_remote') }}"
+                onsubmit="return confirm('Cancel this session? All scans taken during it will be permanently deleted and it will NOT count as a held class.');">
+            <input type="hidden" name="offering_id" value="{{ selected_offering_id }}" />
+            <button type="submit" class="btn-ghost-danger">Cancel Session</button>
+          </form>
+        </div>
+        <p class="hint" style="margin:10px 0 0;">
+          <strong>End</strong> closes the session and keeps it in attendance records. <strong>Cancel</strong> discards it completely — no readings, no record.
+        </p>
       {% elif open_elsewhere_course_code %}
         <p class="session-control-title">Device busy</p>
         <p class="hint" style="margin:0 0 10px;">
@@ -58,36 +68,43 @@
       {% endif %}
     </div>
 
-    <div class="section-title">Class Overview</div>
     <div class="card" style="margin-bottom:18px;">
-      {% if roster %}
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Sessions</th>
-            <th>Present</th>
-            <th>Absent</th>
-            <th>Attendance</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for student in roster %}
-          <tr>
-            <td>{{ student.student_id }}</td>
-            <td>{{ student.name }}</td>
-            <td>{{ student.total }}</td>
-            <td>{{ student.present }}</td>
-            <td>{{ student.absent }}</td>
-            <td><span class="badge badge-{{ student.level }}">{{ student.percentage }}%</span></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <p class="empty-note">No enrolled students or sessions yet for this course.</p>
-      {% endif %}
+      <details class="overview-toggle">
+        <summary>
+          <span class="section-title" style="margin:0; display:inline;">Class Overview</span>
+          <span class="hint">— tap to view full attendance for every enrolled student</span>
+        </summary>
+        <div style="margin-top:14px;">
+          {% if roster %}
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Sessions</th>
+                <th>Present</th>
+                <th>Absent</th>
+                <th>Attendance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for student in roster %}
+              <tr>
+                <td>{{ student.student_id }}</td>
+                <td>{{ student.name }}</td>
+                <td>{{ student.total }}</td>
+                <td>{{ student.present }}</td>
+                <td>{{ student.absent }}</td>
+                <td><span class="badge badge-{{ student.level }}">{{ student.percentage }}%</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="empty-note">No enrolled students or sessions yet for this course.</p>
+          {% endif %}
+        </div>
+      </details>
     </div>
 
     <div class="section-title">Attendance by Date</div>
