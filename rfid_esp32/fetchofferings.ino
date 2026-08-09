@@ -18,6 +18,7 @@ bool fetchOfferings()
             continue;
         }
 
+        http.addHeader("X-API-Key", API_KEY);
         code = http.GET();
         payload = (code > 0) ? http.getString() : "";
 
@@ -55,8 +56,7 @@ bool fetchOfferings()
 
         offeringIds[offeringCount] = offering["offering_id"].as<long>();
 
-        String label = offering["course_code"].as<String>()
-                     + " (" + offering["batch"].as<String>() + ")";
+        String label = offering["course_code"].as<String>();
         offeringLabels[offeringCount] = label;
 
         offeringCount++;

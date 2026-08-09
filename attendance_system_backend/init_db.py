@@ -66,15 +66,13 @@ course_code TEXT NOT NULL,
 
 academic_year INTEGER NOT NULL,
 
-batch TEXT NOT NULL,
-
 assigned_teacher_id TEXT,
 
 FOREIGN KEY(course_code) REFERENCES Courses(course_code),
 
 FOREIGN KEY(assigned_teacher_id) REFERENCES Teachers(teacher_id),
 
-UNIQUE(course_code, academic_year, batch)
+UNIQUE(course_code, academic_year)
 
 )
 

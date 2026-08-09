@@ -14,6 +14,27 @@ const char* SERVER = "https://rfid-attendance-system-c42q.onrender.com";
 const int HTTP_TIMEOUT_MS = 20000;
 const int HTTP_RETRIES = 3;
 
+// Must match DEVICE_API_KEY on the server (config.py / Render env var).
+const char* API_KEY = "dev-only-change-me";
+
+// How often (ms) the device checks the server for a remotely
+// started/ended session. 3-4s keeps things responsive without hammering
+// the server or the WiFi radio.
+const unsigned long POLL_INTERVAL_MS = 3500;
+unsigned long lastPollMs = 0;
+
+// Return codes for readCard() (defined here, in the main .ino, so they're
+// guaranteed to be visible to every other tab -- the Arduino IDE
+// concatenates the main sketch file first, then the other tabs
+// alphabetically, so a #define living in readcard.ino wouldn't be seen
+// by code above it in this file).
+#define READCARD_BACK     1   // NEXT pressed -> caller should exit
+#define READCARD_SCANNED  2   // card scanned + processed, keep scanning
+#define READCARD_TIMEOUT  3   // no card yet, but pollWindowMs elapsed so the
+                               // caller can check the server (e.g. did the
+                               // teacher end the session remotely?) before
+                               // waiting for a card again
+
 #define MAX_OFFERINGS 20
 String offeringLabels[MAX_OFFERINGS];   // shown on screen, e.g. "ICT2207 (B24)"
 long offeringIds[MAX_OFFERINGS];        // sent to /start_session
@@ -111,6 +132,15 @@ void setup() {
 }
 
 void loop() {
+  // While sitting idle at the main menu, periodically check whether a
+  // teacher has remotely started a session from the dashboard. If so,
+  // jump straight into attendance-taking for that course -- no menu
+  // navigation needed on the device.
+  if (millis() - lastPollMs >= POLL_INTERVAL_MS) {
+    lastPollMs = millis();
+    checkForRemoteStart();
+  }
+
   drawMenu();          // return to menu
 
 
@@ -127,6 +157,34 @@ void loop() {
     drawMenu();
 
 
+  }
+}
+
+// Checks the server for a remotely started session and, if there is one
+// this device doesn't already know about, jumps straight into
+// attendance-taking for it.
+void checkForRemoteStart() {
+  long remoteSessionId = -1;
+  long remoteOfferingId = -1;
+  String remoteCourseCode = "";
+  bool requestOk = false;
+
+  bool active = pollDeviceCommand(remoteSessionId, remoteOfferingId, remoteCourseCode, requestOk);
+
+  if (active && remoteSessionId != currentSession) {
+    currentSession = remoteSessionId;
+    currentCourse = remoteCourseCode;
+
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.println("Remote Session");
+    display.println("Started");
+    display.println(currentCourse);
+    display.display();
+    beep(1,100);
+    delay(800);
+
+    readCardMenu();
   }
 }
 
@@ -191,20 +249,59 @@ void readCardMenu() {
 
   while (true) {
 
+    bool sessionActive = (currentSession != -1);
+
     display.clearDisplay();
     display.setCursor(0,0);
     display.println("Tap card...");
-    display.println("NEXT = Back");
+    display.println(sessionActive ? "NEXT = End Session" : "NEXT = Back");
     display.display();
 
-    if (buttonPressed(BTN_NEXT)) {
+    // Only poll while there's an active session to watch -- no point
+    // spending network calls when this is just idle card testing.
+    unsigned long pollWindow = sessionActive ? POLL_INTERVAL_MS : 0;
+
+    int result = readCard(pollWindow);
+
+    if (result == READCARD_BACK) {
+      if (sessionActive) {
+        sendEndSession(currentSession);
+        currentSession = -1;
+        currentCourse = "";
+      }
       return;
     }
 
-    if (readCard()) {   // now actually acts on the result
-      return;
+    if (result == READCARD_TIMEOUT) {
+      // No card yet -- check whether the teacher ended (or swapped)
+      // the session remotely from the dashboard.
+      long remoteSessionId = -1;
+      long remoteOfferingId = -1;
+      String remoteCourseCode = "";
+      bool requestOk = false;
+
+      bool active = pollDeviceCommand(remoteSessionId, remoteOfferingId, remoteCourseCode, requestOk);
+
+      // Only act on a successful response -- a failed/flaky request
+      // should never be treated as "the session ended".
+      if (requestOk && (!active || remoteSessionId != currentSession)) {
+        display.clearDisplay();
+        display.setCursor(0,0);
+        display.println("Session Ended");
+        display.println("(from dashboard)");
+        display.display();
+        beep(2,80);
+        delay(1200);
+
+        currentSession = -1;
+        currentCourse = "";
+        return;
+      }
+
+      continue;
     }
 
+    // READCARD_SCANNED -- keep scanning for the next card
     delay(20);
   }
 }
@@ -236,7 +333,7 @@ void connectWiFi()
 
 
 // offering menu (course offerings, not just courses — same course
-// can have separate offerings for different batches/years)
+// can have separate offerings for different years)
 // OLED only fits 3-4 rows, so this scrolls one offering at a time
 // via NEXT rather than listing them all at once.
 

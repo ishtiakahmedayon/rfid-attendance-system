@@ -96,8 +96,7 @@ def teacher_dashboard():
             CourseOfferings.offering_id,
             CourseOfferings.course_code,
             Courses.course_name,
-            CourseOfferings.academic_year,
-            CourseOfferings.batch
+            CourseOfferings.academic_year
         FROM CourseOfferings
         JOIN Courses ON CourseOfferings.course_code = Courses.course_code
         WHERE CourseOfferings.assigned_teacher_id = ?
@@ -115,7 +114,6 @@ def teacher_dashboard():
             CourseOfferings.course_code,
             Courses.course_name,
             CourseOfferings.academic_year,
-            CourseOfferings.batch,
             ArchivedOfferings.archived_at
         FROM ArchivedOfferings
         JOIN CourseOfferings ON CourseOfferings.offering_id = ArchivedOfferings.offering_id
