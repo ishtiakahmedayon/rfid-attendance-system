@@ -61,13 +61,12 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Adafruit_PN532 nfc(PN532_IRQ, PN532_RESET);
 
 const char *menuItems[] = {
-  "Read Card",
+  "Create Session",
   "Read Card Test",
-  "Create Session"
 };
 
 int selected = 0;
-const int menuSize = 3;
+const int menuSize = 2;
 
 void setup() {
 
@@ -146,13 +145,14 @@ void loop() {
 
   if (buttonPressed(BTN_SELECT)) {
     if(selected == 0){
-      readCardMenu();
+      offeringMenu();
+      
     }else if(selected == 1){
       readCardMenuTest();
     }
-    else if(selected==2){
-      offeringMenu();
-    }
+    // else if(selected==2){
+    //   readCardMenu();
+    // }
 
     drawMenu();
 
@@ -333,7 +333,7 @@ void connectWiFi()
 
 
 // offering menu (course offerings, not just courses — same course
-// can have separate offerings for different years)
+// can have separate offerings for different batches/years)
 // OLED only fits 3-4 rows, so this scrolls one offering at a time
 // via NEXT rather than listing them all at once.
 
