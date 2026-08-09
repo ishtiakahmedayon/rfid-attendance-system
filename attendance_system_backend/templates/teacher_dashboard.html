@@ -16,8 +16,74 @@
           <p class="hint" style="margin:0;">{{ teacher_name }}</p>
         </div>
       </div>
-      <a class="logout-btn" href="{{ url_for('ui.logout') }}">Logout</a>
+      <div class="menu-wrap">
+        <button type="button" class="logout-btn" onclick="toggleMenu()">Menu ▾</button>
+        <div class="menu-dropdown" id="topMenu">
+          <button type="button" class="menu-item" onclick="closeMenuAnd('assignedDialog')">Assigned Courses</button>
+          <button type="button" class="menu-item" onclick="closeMenuAnd('archivedDialog')">
+            Archived Courses{% if archived_offerings %} ({{ archived_offerings|length }}){% endif %}
+          </button>
+          <a class="menu-item menu-item-danger" href="{{ url_for('ui.logout') }}">Logout</a>
+        </div>
+      </div>
     </div>
+
+    <dialog id="assignedDialog" class="floating-panel">
+      <div class="floating-panel-head">
+        <h3>Assigned Courses</h3>
+        <button type="button" class="panel-close" onclick="document.getElementById('assignedDialog').close()">✕</button>
+      </div>
+      {% if offerings %}
+      <div class="panel-list">
+        {% for offering in offerings %}
+        <div class="panel-row">
+          <div>
+            <p class="panel-row-title">{{ offering['course_code'] }}</p>
+            <p class="hint" style="margin:0;">{{ offering['course_name'] }} &nbsp;•&nbsp; {{ offering['academic_year'] }}, {{ offering['batch'] }}</p>
+          </div>
+          <div class="panel-row-actions">
+            <a class="tab-link" href="{{ url_for('ui.teacher_dashboard', offering_id=offering['offering_id']) }}">View</a>
+            <form method="post" action="{{ url_for('ui.archive_course') }}"
+                  onsubmit="return confirm('Archive {{ offering['course_code'] }}? It will move out of your active course tabs. You can unarchive it anytime.');">
+              <input type="hidden" name="offering_id" value="{{ offering['offering_id'] }}" />
+              <button type="submit" class="btn-ghost-danger">Archive</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="empty-note">No active course offerings assigned to you.</p>
+      {% endif %}
+    </dialog>
+
+    <dialog id="archivedDialog" class="floating-panel">
+      <div class="floating-panel-head">
+        <h3>Archived Courses</h3>
+        <button type="button" class="panel-close" onclick="document.getElementById('archivedDialog').close()">✕</button>
+      </div>
+      {% if archived_offerings %}
+      <div class="panel-list">
+        {% for offering in archived_offerings %}
+        <div class="panel-row">
+          <div>
+            <p class="panel-row-title">{{ offering['course_code'] }}</p>
+            <p class="hint" style="margin:0;">{{ offering['course_name'] }} &nbsp;•&nbsp; {{ offering['academic_year'] }}, {{ offering['batch'] }}</p>
+            <p class="hint" style="margin:0;">Archived {{ offering['archived_at'] }}</p>
+          </div>
+          <div class="panel-row-actions">
+            <form method="post" action="{{ url_for('ui.unarchive_course') }}">
+              <input type="hidden" name="offering_id" value="{{ offering['offering_id'] }}" />
+              <button type="submit">Unarchive</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="empty-note">No archived courses.</p>
+      {% endif %}
+    </dialog>
 
     {% if offerings %}
     <div class="tab-bar">
@@ -183,5 +249,22 @@
     </div>
     {% endif %}
   </div>
+
+  <script>
+    function toggleMenu() {
+      document.getElementById('topMenu').classList.toggle('open');
+    }
+    function closeMenuAnd(dialogId) {
+      document.getElementById('topMenu').classList.remove('open');
+      document.getElementById(dialogId).showModal();
+    }
+    document.addEventListener('click', function (e) {
+      var menu = document.getElementById('topMenu');
+      var wrap = document.querySelector('.menu-wrap');
+      if (menu.classList.contains('open') && wrap && !wrap.contains(e.target)) {
+        menu.classList.remove('open');
+      }
+    });
+  </script>
 </body>
 </html>

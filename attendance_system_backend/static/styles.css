@@ -612,6 +612,143 @@ button:disabled {
   min-width: 160px;
 }
 
+/* ---------- Top-right menu ---------- */
+.menu-wrap {
+  position: relative;
+}
+
+.menu-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  z-index: 20;
+}
+
+.menu-dropdown.open {
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 11px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.menu-item:hover {
+  background: var(--primary-soft);
+}
+
+.menu-item-danger {
+  color: var(--danger);
+  border-top: 1px solid var(--line);
+}
+
+.menu-item-danger:hover {
+  background: var(--danger-soft);
+}
+
+/* ---------- Floating panels (dialogs) ---------- */
+.floating-panel {
+  border: none;
+  border-radius: var(--radius);
+  box-shadow: 0 20px 50px rgba(20, 25, 45, 0.25);
+  padding: 22px;
+  width: min(560px, 92vw);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.floating-panel::backdrop {
+  background: rgba(15, 20, 35, 0.45);
+}
+
+.floating-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.floating-panel-head h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.panel-close {
+  width: auto;
+  padding: 4px 10px;
+  background: transparent;
+  color: var(--muted);
+  box-shadow: none;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+.panel-close:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  transform: none;
+  box-shadow: none;
+}
+
+.panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panel-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  flex-wrap: wrap;
+}
+
+.panel-row-title {
+  margin: 0 0 2px;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.panel-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-row-actions form {
+  margin: 0;
+}
+
+.panel-row-actions button {
+  width: auto;
+  margin: 0;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
 .section-title {
   font-size: 13px;
   font-weight: 700;

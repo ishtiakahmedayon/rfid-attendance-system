@@ -101,11 +101,31 @@ def teacher_dashboard():
         FROM CourseOfferings
         JOIN Courses ON CourseOfferings.course_code = Courses.course_code
         WHERE CourseOfferings.assigned_teacher_id = ?
+          AND CourseOfferings.offering_id NOT IN (SELECT offering_id FROM ArchivedOfferings)
         ORDER BY CourseOfferings.academic_year DESC, CourseOfferings.offering_id DESC
         """,
         (teacher_id,),
     )
     offerings = cur.fetchall()
+
+    cur.execute(
+        """
+        SELECT
+            CourseOfferings.offering_id,
+            CourseOfferings.course_code,
+            Courses.course_name,
+            CourseOfferings.academic_year,
+            CourseOfferings.batch,
+            ArchivedOfferings.archived_at
+        FROM ArchivedOfferings
+        JOIN CourseOfferings ON CourseOfferings.offering_id = ArchivedOfferings.offering_id
+        JOIN Courses ON Courses.course_code = CourseOfferings.course_code
+        WHERE CourseOfferings.assigned_teacher_id = ?
+        ORDER BY ArchivedOfferings.archived_at DESC
+        """,
+        (teacher_id,),
+    )
+    archived_offerings = cur.fetchall()
 
     offering_ids = [str(row["offering_id"]) for row in offerings]
 
@@ -269,6 +289,7 @@ def teacher_dashboard():
         "teacher_dashboard.html",
         teacher_name=session.get("teacher_name"),
         offerings=offerings,
+        archived_offerings=archived_offerings,
         selected_offering_id=selected_offering_id,
         sessions_data=sessions_data,
         roster=roster,
@@ -391,6 +412,76 @@ def cancel_session_remote():
             cur.execute("DELETE FROM Attendance WHERE session_id = ?", (session_id,))
             cur.execute("DELETE FROM Sessions WHERE session_id = ?", (session_id,))
             conn.commit()
+
+    conn.close()
+
+    return redirect(url_for("ui.teacher_dashboard", offering_id=offering_id))
+
+
+@ui_bp.route("/teacher/course/archive", methods=["POST"])
+@login_required(role="teacher")
+def archive_course():
+    teacher_id = session.get("teacher_id")
+    offering_id = request.form.get("offering_id", "").strip()
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT 1 FROM CourseOfferings
+        WHERE offering_id = ? AND assigned_teacher_id = ?
+        """,
+        (offering_id, teacher_id),
+    )
+    owns_offering = cur.fetchone() is not None
+
+    if owns_offering:
+        cur.execute(
+            "SELECT 1 FROM Sessions WHERE offering_id = ? AND status = 'Open'",
+            (offering_id,),
+        )
+        has_live_session = cur.fetchone() is not None
+
+        if not has_live_session:
+            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            cur.execute(
+                """
+                INSERT OR IGNORE INTO ArchivedOfferings (offering_id, archived_at, archived_by)
+                VALUES (?, ?, ?)
+                """,
+                (offering_id, now_str, teacher_id),
+            )
+            conn.commit()
+
+    conn.close()
+
+    # The archived course drops out of the tab bar, so don't try to
+    # re-select it -- fall back to the dashboard's own default.
+    return redirect(url_for("ui.teacher_dashboard"))
+
+
+@ui_bp.route("/teacher/course/unarchive", methods=["POST"])
+@login_required(role="teacher")
+def unarchive_course():
+    teacher_id = session.get("teacher_id")
+    offering_id = request.form.get("offering_id", "").strip()
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT 1 FROM CourseOfferings
+        WHERE offering_id = ? AND assigned_teacher_id = ?
+        """,
+        (offering_id, teacher_id),
+    )
+    owns_offering = cur.fetchone() is not None
+
+    if owns_offering:
+        cur.execute("DELETE FROM ArchivedOfferings WHERE offering_id = ?", (offering_id,))
+        conn.commit()
 
     conn.close()
 
