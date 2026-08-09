@@ -1,3 +1,6 @@
+// Return codes for readCard() are defined in rfid_esp32.ino (READCARD_BACK,
+// READCARD_SCANNED, READCARD_TIMEOUT) so they're visible to every tab.
+
 // Waits up to `ms` milliseconds, but keeps checking BTN_NEXT the whole time.
 // Returns true immediately if NEXT is pressed during the wait.
 bool waitOrButton(unsigned long ms) {
@@ -9,19 +12,32 @@ bool waitOrButton(unsigned long ms) {
   }
   return false;
 }
-bool readCard(){
+
+// pollWindowMs: if no card shows up within this many milliseconds,
+// return READCARD_TIMEOUT so the caller can poll the server and then
+// call readCard() again. Pass 0 to wait indefinitely for a card (used
+// when there's no active session to watch, e.g. plain card testing).
+int readCard(unsigned long pollWindowMs){
 
   uint8_t uid[7];
   uint8_t uidLength;
 
-  // Waits (blocking) until a card is presented or the read times out
+  unsigned long waitStart = millis();
+
+  // Waits (blocking, in small 50ms chunks) until a card is presented,
+  // NEXT is pressed, or the poll window elapses
   while(true){
     if(buttonPressed(BTN_NEXT)){
-      return true;
+      return READCARD_BACK;
     }
+
     bool success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 50);
     if(success){
       break;
+    }
+
+    if (pollWindowMs > 0 && millis() - waitStart >= pollWindowMs) {
+      return READCARD_TIMEOUT;
     }
   }
 
@@ -49,6 +65,5 @@ bool readCard(){
 
   sendAttendance(uidString);   // shows name/status on OLED, holds it ~1-1.5s
 
-
-  return backPressed;   // <-- MUST be this, not "return true;"
+  return backPressed ? READCARD_BACK : READCARD_SCANNED;
 }
