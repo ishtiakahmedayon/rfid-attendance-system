@@ -117,6 +117,7 @@ def teacher_dashboard():
         selected_offering_id = ""
 
     sessions_data = []
+    roster = []
 
     if selected_offering_id in offering_ids:
         cur.execute(
@@ -179,6 +180,63 @@ def teacher_dashboard():
                 }
             )
 
+        # Class overview: every enrolled student's overall attendance for
+        # this course, so the teacher can see the whole class at a glance
+        # instead of only date-by-date.
+        cur.execute(
+            """
+            SELECT
+                Students.student_id,
+                Students.name,
+                Sessions.session_id,
+                COALESCE(Attendance.status, 'Absent') AS status
+            FROM Enrollments
+            JOIN Students ON Students.student_id = Enrollments.student_id
+            JOIN Sessions ON Sessions.offering_id = Enrollments.offering_id
+            LEFT JOIN Attendance
+                ON Attendance.student_id = Enrollments.student_id
+                AND Attendance.session_id = Sessions.session_id
+            WHERE Enrollments.offering_id = ?
+              AND Enrollments.status = 'Active'
+            ORDER BY Students.name
+            """,
+            (selected_offering_id,),
+        )
+        roster_rows = cur.fetchall()
+
+        roster_by_student = {}
+        for row in roster_rows:
+            key = row["student_id"]
+            entry = roster_by_student.setdefault(
+                key,
+                {
+                    "student_id": row["student_id"],
+                    "name": row["name"],
+                    "present": 0,
+                    "absent": 0,
+                    "total": 0,
+                },
+            )
+            entry["total"] += 1
+            if row["status"] == "Present":
+                entry["present"] += 1
+            else:
+                entry["absent"] += 1
+
+        for entry in roster_by_student.values():
+            pct = (entry["present"] / entry["total"] * 100) if entry["total"] else 0
+            if pct < 60:
+                level = "red"
+            elif pct >= 80:
+                level = "good"
+            else:
+                level = "warn"
+            entry["percentage"] = round(pct, 1)
+            entry["level"] = level
+            roster.append(entry)
+
+        roster.sort(key=lambda e: e["name"])
+
     # There's a single physical device today, so only one session can be
     # actively running at any moment -- figure out whether that's this
     # course's session, someone else's, or nothing at all, so the
@@ -213,6 +271,7 @@ def teacher_dashboard():
         offerings=offerings,
         selected_offering_id=selected_offering_id,
         sessions_data=sessions_data,
+        roster=roster,
         open_session_here=open_session_here,
         open_elsewhere_course_code=open_elsewhere_course_code,
     )

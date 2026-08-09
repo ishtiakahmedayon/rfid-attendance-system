@@ -38,9 +38,18 @@
           </div>
 
           <div class="stat-row">
-            <div class="stat"><strong>{{ course.total }}</strong>Total Sessions</div>
-            <div class="stat"><strong>{{ course.present }}</strong>Present</div>
-            <div class="stat"><strong>{{ course.absent }}</strong>Absent</div>
+            <div class="stat-box">
+              <strong>{{ course.total }}</strong>
+              <span>Total Sessions</span>
+            </div>
+            <div class="stat-box stat-box-good">
+              <strong>{{ course.present }}</strong>
+              <span>Present</span>
+            </div>
+            <div class="stat-box stat-box-red">
+              <strong>{{ course.absent }}</strong>
+              <span>Absent</span>
+            </div>
           </div>
 
           <details class="absent-toggle">

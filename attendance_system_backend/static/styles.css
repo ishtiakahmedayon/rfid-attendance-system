@@ -316,7 +316,7 @@ tbody tr:hover {
 
 .stat-row {
   display: flex;
-  gap: 18px;
+  gap: 10px;
   margin-top: 12px;
   flex-wrap: wrap;
 }
@@ -330,6 +330,44 @@ tbody tr:hover {
   color: var(--text);
   font-size: 15px;
   display: block;
+}
+
+.stat-box {
+  flex: 1;
+  min-width: 90px;
+  text-align: center;
+  padding: 10px 8px;
+  border-radius: 10px;
+  background: #f4f5f9;
+}
+
+.stat-box strong {
+  display: block;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.stat-box span {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.stat-box-good {
+  background: var(--good-soft);
+}
+
+.stat-box-good strong {
+  color: var(--good-strong);
+}
+
+.stat-box-red {
+  background: var(--danger-soft);
+}
+
+.stat-box-red strong {
+  color: var(--danger);
 }
 
 details.absent-toggle {
