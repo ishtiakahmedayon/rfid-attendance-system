@@ -35,7 +35,6 @@ void sendAttendance(String uid)
         }
 
         http.addHeader("Content-Type","application/json");
-        http.addHeader("X-API-Key", API_KEY);
         code = http.POST(json);
         payload = (code > 0) ? http.getString() : "";
 
