@@ -2,8 +2,10 @@
 
 
 ### DataBase dependency
+```
 
 Teachers ──┐
            ├──> CourseOfferings ──> Sessions
 Courses ───┘         │
                      └──> Enrollments <── Students
+```
