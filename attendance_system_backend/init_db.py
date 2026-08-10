@@ -48,7 +48,9 @@ course_code TEXT PRIMARY KEY,
 
 course_name TEXT,
 
-semester INTEGER
+semester INTEGER,
+
+credit REAL
 
 )
 

@@ -96,6 +96,7 @@ def teacher_dashboard():
             CourseOfferings.offering_id,
             CourseOfferings.course_code,
             Courses.course_name,
+            Courses.credit,
             CourseOfferings.academic_year
         FROM CourseOfferings
         JOIN Courses ON CourseOfferings.course_code = Courses.course_code
@@ -133,6 +134,10 @@ def teacher_dashboard():
         selected_offering_id = offering_ids[0]
     elif not offering_ids:
         selected_offering_id = ""
+
+    selected_offering = next(
+        (o for o in offerings if str(o["offering_id"]) == selected_offering_id), None
+    )
 
     sessions_data = []
     roster = []
@@ -289,6 +294,7 @@ def teacher_dashboard():
         offerings=offerings,
         archived_offerings=archived_offerings,
         selected_offering_id=selected_offering_id,
+        selected_offering=selected_offering,
         sessions_data=sessions_data,
         roster=roster,
         open_session_here=open_session_here,
@@ -501,6 +507,7 @@ def student_dashboard():
             CourseOfferings.offering_id,
             Courses.course_code,
             Courses.course_name,
+            Courses.credit,
             Sessions.date,
             Sessions.start_time,
             Attendance.scan_time,
@@ -508,12 +515,13 @@ def student_dashboard():
         FROM Enrollments
         JOIN CourseOfferings ON CourseOfferings.offering_id = Enrollments.offering_id
         JOIN Courses ON Courses.course_code = CourseOfferings.course_code
-        JOIN Sessions ON Sessions.offering_id = CourseOfferings.offering_id
+        LEFT JOIN Sessions ON Sessions.offering_id = CourseOfferings.offering_id
         LEFT JOIN Attendance
             ON Attendance.session_id = Sessions.session_id
             AND Attendance.student_id = Enrollments.student_id
         WHERE Enrollments.student_id = ?
           AND Enrollments.status = 'Active'
+          AND CourseOfferings.offering_id NOT IN (SELECT offering_id FROM ArchivedOfferings)
         ORDER BY Courses.course_name, Sessions.date DESC, Sessions.start_time DESC
         """,
         (student_id,),
@@ -525,6 +533,12 @@ def student_dashboard():
     # Group each attendance row under its enrolled course offering and
     # compute present/absent totals, attendance percentage, and the full
     # session-by-session history (date, time, present/absent status).
+    # The Sessions table is LEFT JOINed above so a course with zero
+    # sessions still produces one row (all Session/Attendance fields
+    # NULL) instead of disappearing entirely -- that row just doesn't
+    # contribute to the counts or session list below.
+    # Archived offerings are excluded above, so an archived course drops
+    # out of the student's view entirely as soon as the teacher archives it.
     courses_by_offering = {}
     for row in rows:
         key = row["offering_id"]
@@ -534,12 +548,19 @@ def student_dashboard():
                 "offering_id": row["offering_id"],
                 "course_code": row["course_code"],
                 "course_name": row["course_name"],
+                "credit": row["credit"],
                 "present": 0,
                 "absent": 0,
                 "total": 0,
                 "sessions": [],
             },
         )
+
+        if row["session_id"] is None:
+            # No sessions held yet for this course -- keep the course
+            # card, just with nothing to count.
+            continue
+
         course["total"] += 1
         if row["status"] == "Present":
             course["present"] += 1
@@ -556,15 +577,21 @@ def student_dashboard():
 
     courses = []
     for course in courses_by_offering.values():
-        percentage = (course["present"] / course["total"] * 100) if course["total"] else 0
-        if percentage < 60:
-            level = "red"
-        elif percentage >= 80:
-            level = "good"
+        if course["total"] == 0:
+            # No sessions yet -- neutral state, not a 0% (which would
+            # misleadingly show up red).
+            course["percentage"] = None
+            course["level"] = "none"
         else:
-            level = "warn"
-        course["percentage"] = round(percentage, 1)
-        course["level"] = level
+            percentage = course["present"] / course["total"] * 100
+            if percentage < 60:
+                level = "red"
+            elif percentage >= 80:
+                level = "good"
+            else:
+                level = "warn"
+            course["percentage"] = round(percentage, 1)
+            course["level"] = level
         courses.append(course)
 
     courses.sort(key=lambda c: c["course_name"])

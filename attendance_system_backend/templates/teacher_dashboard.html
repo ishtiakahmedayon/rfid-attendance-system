@@ -8,13 +8,11 @@
 </head>
 <body>
   <div class="container">
+    <h1 class="page-title">Teacher Dashboard</h1>
     <div class="top">
       <div class="brand">
         <div class="brand-mark">ID</div>
-        <div>
-          <h2>Teacher Dashboard</h2>
-          <p class="hint" style="margin:0;">{{ teacher_name }}</p>
-        </div>
+        <p class="teacher-name">{{ teacher_name }}</p>
       </div>
       <div class="menu-wrap">
         <button type="button" class="logout-btn" onclick="toggleMenu()">Menu ▾</button>
@@ -95,6 +93,14 @@
       {% endfor %}
     </div>
 
+    <div class="card course-header-card">
+      <p class="course-header-title">{{ selected_offering['course_name'] }}</p>
+      <p class="hint" style="margin:0;">
+        {{ selected_offering['course_code'] }} &nbsp;•&nbsp; {{ selected_offering['academic_year'] }}
+        {% if selected_offering['credit'] %} &nbsp;•&nbsp; {{ selected_offering['credit'] }} Credits{% endif %}
+      </p>
+    </div>
+
     <div class="card session-control">
       {% if open_session_here %}
         <div class="session-control-row">
@@ -125,7 +131,7 @@
         </p>
         <button type="button" disabled>Start Session</button>
       {% else %}
-        <p class="session-control-title">Ready to start</p>
+        <p class="session-control-title">Ready to start — <strong>{{ selected_offering['course_name'] }}</strong></p>
         <p class="hint" style="margin:0 0 10px;">Starting a session tells the device to begin taking attendance immediately.</p>
         <form method="post" action="{{ url_for('ui.start_session_remote') }}">
           <input type="hidden" name="offering_id" value="{{ selected_offering_id }}" />

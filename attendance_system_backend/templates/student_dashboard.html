@@ -8,13 +8,11 @@
 </head>
 <body>
   <div class="container">
+    <h1 class="page-title">Student Dashboard</h1>
     <div class="top">
       <div class="brand">
         <div class="brand-mark">ID</div>
-        <div>
-          <h2>Student Dashboard</h2>
-          <p class="hint" style="margin:0;">{{ student_name }} &nbsp;•&nbsp; ID: {{ student_id }}</p>
-        </div>
+        <p class="teacher-name">{{ student_name }} <span class="hint">&nbsp;•&nbsp; ID: {{ student_id }}</span></p>
       </div>
       <a class="logout-btn" href="{{ url_for('ui.logout') }}">Logout</a>
     </div>
@@ -28,14 +26,23 @@
           <div class="course-head">
             <div>
               <p class="course-title">{{ course.course_name }}</p>
-              <p class="course-code">{{ course.course_code }}</p>
+              <p class="course-code">
+                {{ course.course_code }}
+                {% if course.credit %} &nbsp;•&nbsp; {{ course.credit }} Credits{% endif %}
+              </p>
             </div>
+            {% if course.level == 'none' %}
+            <span class="badge">No sessions yet</span>
+            {% else %}
             <span class="badge badge-{{ course.level }}">{{ course.percentage }}%</span>
+            {% endif %}
           </div>
 
+          {% if course.level != 'none' %}
           <div class="progress-track">
             <div class="progress-fill badge-{{ course.level }}" style="width: {{ course.percentage }}%;"></div>
           </div>
+          {% endif %}
 
           <div class="stat-row">
             <div class="stat-box">

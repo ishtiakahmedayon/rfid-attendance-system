@@ -29,6 +29,8 @@ body {
   background: var(--bg-gradient);
   color: var(--text);
   min-height: 100vh;
+  border: 6px solid var(--primary);
+  box-sizing: border-box;
 }
 
 .container {
@@ -51,6 +53,22 @@ body {
   margin: 0 0 2px;
   font-size: 22px;
   letter-spacing: -0.02em;
+}
+
+.page-title {
+  text-align: center;
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 6px 0 20px;
+  color: var(--text);
+}
+
+.teacher-name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
 }
 
 .brand {
@@ -254,6 +272,8 @@ tbody tr:hover {
   border-radius: 999px;
   font-size: 13px;
   font-weight: 700;
+  background: #eef0f5;
+  color: var(--muted);
 }
 
 .badge-red {
@@ -508,6 +528,18 @@ details.session-list summary::before {
 
 details.session-list[open] summary::before {
   content: "▾ Hide full list";
+}
+
+/* ---------- Course header (selected course, teacher dashboard) ---------- */
+.course-header-card {
+  margin-bottom: 14px;
+}
+
+.course-header-title {
+  margin: 0 0 4px;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 /* ---------- Session control (teacher start/end) ---------- */
