@@ -167,7 +167,13 @@
                 <td>{{ student.total }}</td>
                 <td>{{ student.present }}</td>
                 <td>{{ student.absent }}</td>
-                <td><span class="badge badge-{{ student.level }}">{{ student.percentage }}%</span></td>
+                <td>
+                  {% if student.level == 'none' %}
+                  <span class="badge">No sessions yet</span>
+                  {% else %}
+                  <span class="badge badge-{{ student.level }}">{{ student.percentage }}%</span>
+                  {% endif %}
+                </td>
               </tr>
               {% endfor %}
             </tbody>

@@ -205,7 +205,9 @@ def teacher_dashboard():
 
         # Class overview: every enrolled student's overall attendance for
         # this course, so the teacher can see the whole class at a glance
-        # instead of only date-by-date.
+        # instead of only date-by-date. Sessions is LEFT JOINed so a
+        # course with zero sessions held yet still lists its enrolled
+        # students (with 0/0 counts) instead of showing nobody.
         cur.execute(
             """
             SELECT
@@ -215,7 +217,7 @@ def teacher_dashboard():
                 COALESCE(Attendance.status, 'Absent') AS status
             FROM Enrollments
             JOIN Students ON Students.student_id = Enrollments.student_id
-            JOIN Sessions ON Sessions.offering_id = Enrollments.offering_id
+            LEFT JOIN Sessions ON Sessions.offering_id = Enrollments.offering_id
             LEFT JOIN Attendance
                 ON Attendance.student_id = Enrollments.student_id
                 AND Attendance.session_id = Sessions.session_id
@@ -240,6 +242,12 @@ def teacher_dashboard():
                     "total": 0,
                 },
             )
+
+            if row["session_id"] is None:
+                # No sessions held for this course yet -- student still
+                # shows up on the roster, just with nothing to count.
+                continue
+
             entry["total"] += 1
             if row["status"] == "Present":
                 entry["present"] += 1
@@ -247,15 +255,19 @@ def teacher_dashboard():
                 entry["absent"] += 1
 
         for entry in roster_by_student.values():
-            pct = (entry["present"] / entry["total"] * 100) if entry["total"] else 0
-            if pct < 60:
-                level = "red"
-            elif pct >= 80:
-                level = "good"
+            if entry["total"] == 0:
+                entry["percentage"] = None
+                entry["level"] = "none"
             else:
-                level = "warn"
-            entry["percentage"] = round(pct, 1)
-            entry["level"] = level
+                pct = entry["present"] / entry["total"] * 100
+                if pct < 60:
+                    level = "red"
+                elif pct >= 80:
+                    level = "good"
+                else:
+                    level = "warn"
+                entry["percentage"] = round(pct, 1)
+                entry["level"] = level
             roster.append(entry)
 
         roster.sort(key=lambda e: e["name"])
