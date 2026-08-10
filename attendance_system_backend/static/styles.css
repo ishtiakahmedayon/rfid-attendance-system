@@ -29,8 +29,6 @@ body {
   background: var(--bg-gradient);
   color: var(--text);
   min-height: 100vh;
-  /* border: 6px solid var(--primary); */
-  box-sizing: border-box;
 }
 
 .container {
