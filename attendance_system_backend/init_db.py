@@ -32,7 +32,9 @@ teacher_id TEXT PRIMARY KEY,
 
 name TEXT NOT NULL,
 
-password TEXT NOT NULL
+password TEXT NOT NULL,
+
+rfid_uid TEXT UNIQUE
 
 )
 
@@ -143,6 +145,43 @@ student_id TEXT,
 scan_time TEXT,
 
 status TEXT
+
+)
+
+""")
+
+# ---------------- ArchivedOfferings ----------------
+# NOTE: this table already existed in the live DB (added via a separate
+# migration) but was missing from this fresh-install script -- added
+# here so a brand-new deployment matches production.
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS ArchivedOfferings(
+
+offering_id INTEGER PRIMARY KEY REFERENCES CourseOfferings(offering_id),
+
+archived_at TEXT NOT NULL,
+
+archived_by TEXT REFERENCES Teachers(teacher_id)
+
+)
+
+""")
+
+# ---------------- Admins ----------------
+# No seeding here -- admin accounts are inserted manually. See
+# create_admins_table.py / admin_password_tool.py for the workflow.
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS Admins(
+
+admin_id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+username TEXT NOT NULL UNIQUE,
+
+password TEXT NOT NULL
 
 )
 

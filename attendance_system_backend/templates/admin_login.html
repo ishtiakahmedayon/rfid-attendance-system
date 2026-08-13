@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Login</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="card login-card">
+      <div class="brand-mark">ID</div>
+      <h2>Admin Login</h2>
+      <p class="hint">Database and account management</p>
+
+      {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+      <form method="post" action="{{ url_for('admin.login') }}">
+        <label>Username</label>
+        <input type="text" name="username" required autofocus />
+        <label>Password</label>
+        <input type="password" name="password" required />
+        <button type="submit">Sign In</button>
+      </form>
+
+      <p class="hint" style="margin-top:4px;">
+        <a href="{{ url_for('ui.login') }}">Teacher / Student login</a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>

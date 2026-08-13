@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Database Viewer{% if table %} — {{ table }}{% endif %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+  <div class="container">
+    <h1 class="page-title">Database Viewer</h1>
+    <div class="top">
+      <a class="logout-btn" href="{{ url_for('admin.dashboard') }}">← Admin Home</a>
+      <a class="logout-btn" href="{{ url_for('ui.logout') }}">Logout</a>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <p class="hint" style="margin:0 0 10px;">Read-only. No edits or deletes happen here, for any table.</p>
+      <div style="display:flex; flex-wrap:wrap; gap:8px;">
+        {% for t in tables %}
+        <a class="tab-link {% if t == table %}active{% endif %}" href="{{ url_for('admin.db_view', table=t) }}">{{ t }}</a>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if table %}
+    <div class="card" style="overflow-x:auto;">
+      {% if rows %}
+      <table>
+        <thead>
+          <tr>{% for col in columns %}<th>{{ col }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            {% for col in columns %}<td>{{ row[col] if row[col] is not none else '—' }}</td>{% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="empty-note">{{ table }} is empty.</p>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="card">
+      <p class="empty-note">Pick a table above to view its rows.</p>
+    </div>
+    {% endif %}
+  </div>
+</body>
+</html>

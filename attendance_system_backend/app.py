@@ -9,6 +9,7 @@ from api.offerings import offerings_bp
 from api.enrollments import enrollments_bp
 from api.teachers import teachers_bp
 from api.device import device_bp
+from admin import admin_bp
 from ui import ui_bp
 
 app = Flask(__name__)
@@ -22,6 +23,7 @@ app.register_blueprint(offerings_bp)
 app.register_blueprint(enrollments_bp)
 app.register_blueprint(teachers_bp)
 app.register_blueprint(device_bp)
+app.register_blueprint(admin_bp)
 app.register_blueprint(ui_bp)
 
 
@@ -31,6 +33,8 @@ def home():
         return redirect(url_for("ui.teacher_dashboard"))
     if session.get("role") == "student":
         return redirect(url_for("ui.student_dashboard"))
+    if session.get("role") == "admin":
+        return redirect(url_for("admin.dashboard"))
     return redirect(url_for("ui.login"))
 
 

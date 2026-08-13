@@ -14,6 +14,7 @@ def add_teacher():
     teacher_id = data["teacher_id"]
     name = data["name"]
     password = data["password"]
+    rfid_uid = data.get("rfid_uid")
 
     conn = get_connection()
     cur = conn.cursor()
@@ -21,10 +22,10 @@ def add_teacher():
     try:
         cur.execute(
             """
-            INSERT INTO Teachers (teacher_id, name, password)
-            VALUES (?,?,?)
+            INSERT INTO Teachers (teacher_id, name, password, rfid_uid)
+            VALUES (?,?,?,?)
             """,
-            (teacher_id, name, password),
+            (teacher_id, name, password, rfid_uid),
         )
         conn.commit()
 
@@ -43,13 +44,12 @@ def get_teachers():
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT teacher_id, name FROM Teachers ORDER BY teacher_id")
+    cur.execute("SELECT teacher_id, name, rfid_uid FROM Teachers ORDER BY teacher_id")
 
     rows = cur.fetchall()
     conn.close()
 
     return jsonify([dict(row) for row in rows])
-
 
 # ----------------------------
 # Update Teacher
@@ -60,7 +60,7 @@ def update_teacher(teacher_id):
 
     data = request.get_json() or {}
 
-    allowed_fields = ["name", "password"]
+    allowed_fields = ["name", "password", "rfid_uid"]
     updates = {k: v for k, v in data.items() if k in allowed_fields}
 
     if not updates:

@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 from database import get_connection
 from api.auth import require_api_key
@@ -52,3 +52,47 @@ def device_command():
             "course_code": open_session["course_code"],
         }
     )
+
+
+@device_bp.route("/verify_teacher_card", methods=["POST"])
+@require_api_key
+def verify_teacher_card():
+    """Checks a scanned card UID against the *specific* teacher assigned
+    to the given offering, before the device is allowed to start a
+    session for it.
+
+    Deliberately scoped to "does this UID belong to the offering's own
+    assigned teacher" rather than "does this UID belong to any teacher"
+    -- otherwise any teacher's card could start any course's session.
+
+    Returns only a match boolean (plus the offering_id for the device
+    to echo back) -- no teacher identity is exposed to the device beyond
+    that yes/no.
+    """
+
+    data = request.get_json() or {}
+    uid = (data.get("uid") or "").strip()
+    offering_id = data.get("offering_id")
+
+    if not uid or not offering_id:
+        return jsonify({"success": False, "message": "uid and offering_id are required"}), 400
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT Teachers.rfid_uid
+        FROM CourseOfferings
+        JOIN Teachers ON Teachers.teacher_id = CourseOfferings.assigned_teacher_id
+        WHERE CourseOfferings.offering_id = ?
+        """,
+        (offering_id,),
+    )
+    row = cur.fetchone()
+    conn.close()
+
+    assigned_uid = row["rfid_uid"] if row else None
+    match = bool(assigned_uid) and assigned_uid == uid
+
+    return jsonify({"success": True, "match": match, "offering_id": offering_id})

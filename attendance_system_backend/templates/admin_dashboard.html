@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+  <div class="container">
+    <h1 class="page-title">Admin Dashboard</h1>
+    <div class="top">
+      <div class="brand">
+        <div class="brand-mark">ID</div>
+        <p class="teacher-name">{{ admin_username }}</p>
+      </div>
+      <a class="logout-btn" href="{{ url_for('ui.logout') }}">Logout</a>
+    </div>
+
+    <div class="section-title">Manage Records</div>
+    <div class="grid grid-2" style="margin-bottom:22px;">
+      {% for key, meta in entities.items() %}
+      <a class="card panel-row" href="{{ url_for('admin.entity_list', entity=key) }}" style="text-decoration:none; color:inherit;">
+        <div>
+          <p class="panel-row-title">{{ meta.label }}s</p>
+          <p class="hint" style="margin:0;">View, add, edit, or delete</p>
+        </div>
+        <span class="tab-link">Open →</span>
+      </a>
+      {% endfor %}
+    </div>
+
+    <div class="section-title">Database Viewer (read-only)</div>
+    <div class="card">
+      <p class="hint" style="margin:0 0 12px;">
+        Browse any table as-is, including Sessions and Attendance — these two are view-only everywhere in the admin dashboard and have no edit/delete controls.
+      </p>
+      <div style="display:flex; flex-wrap:wrap; gap:8px;">
+        {% for t in tables %}
+        <a class="tab-link" href="{{ url_for('admin.db_view', table=t) }}">{{ t }}</a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>
