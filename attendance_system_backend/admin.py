@@ -95,12 +95,18 @@ def _student_choices(cur):
 
 
 def _offering_choices(cur):
+    # LEFT JOIN so an offering with a data-integrity gap (course_code
+    # that no longer exists in Courses) still appears as a selectable
+    # option instead of silently vanishing from the dropdown.
     cur.execute(
         """
-        SELECT CourseOfferings.offering_id, Courses.course_name, CourseOfferings.academic_year
+        SELECT
+            CourseOfferings.offering_id,
+            COALESCE(Courses.course_name, CourseOfferings.course_code || ' (course missing)') AS course_name,
+            CourseOfferings.academic_year
         FROM CourseOfferings
-        JOIN Courses ON Courses.course_code = CourseOfferings.course_code
-        ORDER BY CourseOfferings.academic_year DESC, Courses.course_name
+        LEFT JOIN Courses ON Courses.course_code = CourseOfferings.course_code
+        ORDER BY CourseOfferings.academic_year DESC, CourseOfferings.offering_id DESC
         """
     )
     return [
@@ -232,17 +238,22 @@ def _list_courses(cur):
 
 def _list_offerings(cur):
     columns = [("offering_id", "ID"), ("course_name", "Course"), ("academic_year", "Year"), ("teacher_name", "Teacher")]
+    # LEFT JOIN Courses/Teachers: an offering whose course_code or
+    # assigned_teacher_id doesn't resolve to an existing row (data drift,
+    # a deleted course, etc.) must still show up here -- an INNER JOIN
+    # would silently drop it from the list entirely, which is exactly
+    # the bug this replaced.
     cur.execute(
         """
         SELECT
             CourseOfferings.offering_id,
-            Courses.course_name,
+            COALESCE(Courses.course_name, CourseOfferings.course_code || ' (course missing)') AS course_name,
             CourseOfferings.academic_year,
             Teachers.name AS teacher_name
         FROM CourseOfferings
-        JOIN Courses ON Courses.course_code = CourseOfferings.course_code
+        LEFT JOIN Courses ON Courses.course_code = CourseOfferings.course_code
         LEFT JOIN Teachers ON Teachers.teacher_id = CourseOfferings.assigned_teacher_id
-        ORDER BY CourseOfferings.academic_year DESC, Courses.course_name
+        ORDER BY CourseOfferings.academic_year DESC, CourseOfferings.offering_id DESC
         """
     )
     return columns, cur.fetchall()
@@ -250,18 +261,21 @@ def _list_offerings(cur):
 
 def _list_enrollments(cur):
     columns = [("enrollment_id", "ID"), ("student_name", "Student"), ("course_name", "Course"), ("academic_year", "Year"), ("status", "Status")]
+    # Same reasoning as _list_offerings above -- LEFT JOIN throughout so
+    # an enrollment tied to an offering/course/student with a data gap
+    # still shows up instead of silently disappearing.
     cur.execute(
         """
         SELECT
             Enrollments.enrollment_id,
             Students.name AS student_name,
-            Courses.course_name,
+            COALESCE(Courses.course_name, CourseOfferings.course_code, '(offering missing)') AS course_name,
             CourseOfferings.academic_year,
             Enrollments.status
         FROM Enrollments
-        JOIN Students ON Students.student_id = Enrollments.student_id
-        JOIN CourseOfferings ON CourseOfferings.offering_id = Enrollments.offering_id
-        JOIN Courses ON Courses.course_code = CourseOfferings.course_code
+        LEFT JOIN Students ON Students.student_id = Enrollments.student_id
+        LEFT JOIN CourseOfferings ON CourseOfferings.offering_id = Enrollments.offering_id
+        LEFT JOIN Courses ON Courses.course_code = CourseOfferings.course_code
         ORDER BY Enrollments.enrollment_id DESC
         """
     )
