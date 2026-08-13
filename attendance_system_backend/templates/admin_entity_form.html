@@ -3,54 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{{ entity_label }}s</title>
+  <title>{{ 'Edit' if is_edit else 'Add' }} {{ entity_label }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
 </head>
 <body>
   <div class="container">
-    <h1 class="page-title">{{ entity_label }}s</h1>
+    <h1 class="page-title">{{ 'Edit' if is_edit else 'Add' }} {{ entity_label }}</h1>
     <div class="top">
-      <a class="logout-btn" href="{{ url_for('admin.dashboard') }}">← Admin Home</a>
+      <a class="logout-btn" href="{{ url_for('admin.entity_list', entity=entity) }}">← Back to list</a>
       <a class="logout-btn" href="{{ url_for('ui.logout') }}">Logout</a>
     </div>
 
-    <div class="card" style="margin-bottom:16px;">
-      <a href="{{ url_for('admin.entity_new', entity=entity) }}">
-        <button type="button">+ Add {{ entity_label }}</button>
-      </a>
-    </div>
-
     <div class="card">
-      {% if rows %}
-      <table>
-        <thead>
-          <tr>
-            {% for col_name, col_label in columns %}<th>{{ col_label }}</th>{% endfor %}
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in rows %}
-          <tr>
-            {% for col_name, col_label in columns %}
-            <td>{{ row[col_name] if row[col_name] is not none else '—' }}</td>
-            {% endfor %}
-            <td>
-              <a href="{{ url_for('admin.entity_edit', entity=entity, pk=row[pk_field]) }}">Edit</a>
-              &nbsp;•&nbsp;
-              <form method="post" action="{{ url_for('admin.entity_delete', entity=entity, pk=row[pk_field]) }}"
-                    style="display:inline;"
-                    onsubmit="return confirm('Delete this {{ entity_label|lower }}? This cannot be undone.');">
-                <button type="submit" class="btn-ghost-danger" style="width:auto; min-width:0; padding:4px 10px; font-size:12px;">Delete</button>
-              </form>
-            </td>
-          </tr>
+      <form method="post">
+        {% for field in fields %}
+        <label>{{ field.label }}</label>
+
+        {% if field.type == 'select' %}
+        <select name="{{ field.name }}" {% if field.required %}required{% endif %}>
+          {% if not field.required %}<option value="">-- none --</option>{% endif %}
+          {% for opt_value, opt_label in field.options %}
+          <option value="{{ opt_value }}" {% if (field.value|string) == (opt_value|string) %}selected{% endif %}>{{ opt_label }}</option>
           {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <p class="empty-note">No {{ entity_label|lower }}s yet.</p>
-      {% endif %}
+        </select>
+
+        {% elif field.type == 'readonly' %}
+        <input type="text" value="{{ field.value }}" disabled />
+
+        {% elif field.type == 'password' %}
+        <input type="password" name="{{ field.name }}" {% if field.required %}required{% endif %} />
+
+        {% elif field.type == 'number' %}
+        <input type="number" step="any" name="{{ field.name }}" value="{{ field.value if field.value is not none else '' }}" {% if field.required %}required{% endif %} />
+
+        {% else %}
+        <input type="text" name="{{ field.name }}" value="{{ field.value if field.value is not none else '' }}" {% if field.required %}required{% endif %} />
+        {% endif %}
+
+        {% if field.hint %}<p class="hint" style="margin-top:-8px;">{{ field.hint }}</p>{% endif %}
+        {% endfor %}
+
+        <button type="submit">{{ 'Save Changes' if is_edit else 'Create' }}</button>
+      </form>
+      {% if error %}<p class="error" style="margin-top:10px;">{{ error }}</p>{% endif %}
     </div>
   </div>
 </body>
