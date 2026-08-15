@@ -53,16 +53,17 @@ String currentCourse = "";
 #define PN532_RESET 5
 
 #define BUZZER_PIN  25
-#define LED_PIN     2
-#define BTN_NEXT 32
-#define BTN_SELECT 33
+#define LED_PIN     12
+#define BTN_NEXT 18
+#define BTN_SELECT 19
+#define LED_RED 32
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Adafruit_PN532 nfc(PN532_IRQ, PN532_RESET);
 
 const char *menuItems[] = {
   "Create Session",
-  "Read Card Test",
+  "Read Card Test"
 };
 
 int selected = 0;
@@ -146,13 +147,10 @@ void loop() {
   if (buttonPressed(BTN_SELECT)) {
     if(selected == 0){
       offeringMenu();
-      
     }else if(selected == 1){
       readCardMenuTest();
     }
-    // else if(selected==2){
-    //   readCardMenu();
-    // }
+
 
     drawMenu();
 
@@ -333,7 +331,7 @@ void connectWiFi()
 
 
 // offering menu (course offerings, not just courses — same course
-// can have separate offerings for different batches/years)
+// can have separate offerings for different years)
 // OLED only fits 3-4 rows, so this scrolls one offering at a time
 // via NEXT rather than listing them all at once.
 
@@ -387,7 +385,18 @@ void offeringMenu()
                 return;   // "Exit" chosen — back to main menu, no session started
             }
 
-            createSession(offeringIds[offeringSelected], offeringLabels[offeringSelected]);
+            long chosenOfferingId = offeringIds[offeringSelected];
+            String chosenLabel = offeringLabels[offeringSelected];
+
+            // Require the assigned teacher's own card before a device-
+            // initiated session can start. Session start from the web
+            // dashboard is already gated by the teacher's login, so this
+            // only applies here, on the device.
+            if (!confirmTeacherCard(chosenOfferingId)) {
+                return;   // not confirmed — back to main menu, no session started
+            }
+
+            createSession(chosenOfferingId, chosenLabel);
             if (currentSession != -1) {
                 readCardMenu();
             }

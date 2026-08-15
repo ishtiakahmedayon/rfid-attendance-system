@@ -50,9 +50,9 @@ int readCard(unsigned long pollWindowMs){
 
 
   // beep(1, 100);
-  digitalWrite(LED_PIN, HIGH);
-  bool backPressed = waitOrButton(300);   // interruptible pause
-  digitalWrite(LED_PIN, LOW);
+  digitalWrite(LED_RED, HIGH);
+  bool backPressed = waitOrButton(200);   // interruptible pause
+  digitalWrite(LED_RED, LOW);
   
 
   String uidString = "";

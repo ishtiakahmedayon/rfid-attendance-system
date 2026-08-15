@@ -72,23 +72,27 @@ void sendAttendance(String uid)
         if (success) {
             const char* student = doc["student"] | "Unknown";
             const char* status  = doc["status"]  | "Unknown";
+            // beep(1,100);
+            digitalWrite(LED_PIN, HIGH);
+            delay(50);
+            digitalWrite(LED_PIN, LOW);
 
             display.println(student);
             display.println(status);
         } else {
             // Unknown Card / Not Enrolled / Already Present / Invalid Session
             const char* message = doc["message"] | "Rejected";
-
+            // beep(1,100);
+            digitalWrite(LED_RED, HIGH);
+            delay(50);
+            digitalWrite(LED_RED, LOW);
             display.println("Rejected:");
             display.println(message);
         }
 
         display.display();
 
-        beep(1,100);
-        digitalWrite(LED_PIN, HIGH);
-        delay(50);
-        digitalWrite(LED_PIN, LOW);
+
 
 
         delay(500);
