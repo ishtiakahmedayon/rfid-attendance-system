@@ -49,9 +49,9 @@ int readCard(unsigned long pollWindowMs){
   }
 
 
-  // beep(1, 100);
+  beep(1, 100);
   digitalWrite(LED_RED, HIGH);
-  bool backPressed = waitOrButton(200);   // interruptible pause
+  bool backPressed = waitOrButton(300);   // interruptible pause
   digitalWrite(LED_RED, LOW);
   
 

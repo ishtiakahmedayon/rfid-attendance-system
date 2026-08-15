@@ -7,8 +7,11 @@
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 
-const char* ssid = "Green_House";
-const char* password = "@greenhouse";
+// const char* ssid = "Green_House";
+// const char* password = "@greenhouse";
+
+const char* ssid = "knowyourlimit";
+const char* password = "knowknow";
 
 const char* SERVER = "https://rfid-attendance-system-c42q.onrender.com";
 const int HTTP_TIMEOUT_MS = 20000;
@@ -23,11 +26,7 @@ const char* API_KEY = "dev-only-change-me";
 const unsigned long POLL_INTERVAL_MS = 3500;
 unsigned long lastPollMs = 0;
 
-// Return codes for readCard() (defined here, in the main .ino, so they're
-// guaranteed to be visible to every other tab -- the Arduino IDE
-// concatenates the main sketch file first, then the other tabs
-// alphabetically, so a #define living in readcard.ino wouldn't be seen
-// by code above it in this file).
+
 #define READCARD_BACK     1   // NEXT pressed -> caller should exit
 #define READCARD_SCANNED  2   // card scanned + processed, keep scanning
 #define READCARD_TIMEOUT  3   // no card yet, but pollWindowMs elapsed so the
@@ -78,6 +77,7 @@ void setup() {
   pinMode(BTN_NEXT, INPUT_PULLUP);
   pinMode(BTN_SELECT, INPUT_PULLUP);
   pinMode(LED_PIN, OUTPUT);
+  pinMode(LED_RED, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
 
   digitalWrite(LED_PIN, LOW);
