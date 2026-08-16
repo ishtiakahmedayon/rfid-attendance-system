@@ -14,8 +14,48 @@ summary dict instead, so a session ending never fails just because
 email isn't set up yet.
 """
 
+import logging
+import threading
+
 from database import get_connection
 from email_utils import EmailNotConfigured, send_absence_email
+
+logger = logging.getLogger(__name__)
+
+
+def notify_absentees_for_session_async(session_id):
+    """Fire-and-forget version for automatic sends (session ending).
+
+    Runs the actual send in a background thread so a slow or blocked
+    SMTP connection can NEVER hang or crash the request that triggers
+    it (e.g. ending a session). This matters a lot in practice: some
+    hosts (Render included) block or silently drop outbound SMTP ports,
+    which can make a connection attempt hang until the WSGI server's
+    own worker-timeout kills the whole worker -- taking down the app
+    for other requests too on a single-worker deployment, not just
+    failing this one email.
+
+    There's no return value and no flash message from this path, since
+    the request has already returned by the time sending finishes or
+    fails -- check server logs for the outcome. Manual sends still use
+    the synchronous notify_absentees_for_session() below so the "Resend"
+    button can show an immediate result.
+    """
+
+    def _run():
+        try:
+            result = notify_absentees_for_session(session_id)
+            if result["not_configured"]:
+                logger.info("Absence emails for session %s: SMTP not configured, skipped.", session_id)
+            else:
+                logger.info(
+                    "Absence emails for session %s: sent=%s no_email=%s failed=%s of %s absent.",
+                    session_id, result["sent"], result["no_email"], result["failed"], result["absent_total"],
+                )
+        except Exception:
+            logger.exception("Unexpected error sending absence emails for session %s", session_id)
+
+    threading.Thread(target=_run, daemon=True).start()
 
 
 def notify_absentees_for_session(session_id):
@@ -109,7 +149,12 @@ def notify_absentees_for_session(session_id):
             sent += 1
         except EmailNotConfigured:
             not_configured = True
-        except Exception:
+        except Exception as e:
+            # Logged (visible in server/Render logs) rather than shown
+            # to the teacher -- the dashboard flash message stays a
+            # simple count, but the real cause needs to be diagnosable
+            # from the server side.
+            logger.error("Failed to send absence email to %s: %s", student["email"], e)
             failed += 1
 
     conn.close()

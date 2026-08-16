@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from database import get_connection
 from api.auth import require_api_key
-from notify_utils import notify_absentees_for_session
+from notify_utils import notify_absentees_for_session_async
 from datetime import datetime
 
 attendance_bp = Blueprint("attendance", __name__)
@@ -220,13 +220,11 @@ def end_session():
 
     conn.close()
 
-    # Automatic absence emails, same as when the dashboard ends a
-    # session. No teacher-facing feedback here (this is a device API
-    # call, not a browser request) -- failures are swallowed silently
-    # by notify_absentees_for_session rather than affecting the
-    # response sent back to the ESP32, which only expects the plain
-    # success payload below, unchanged from before this feature existed.
-    notify_absentees_for_session(session_id)
+    # Fire-and-forget: this must never be able to hang or crash the
+    # response sent back to the ESP32. See notify_utils.py for why --
+    # a blocked/slow SMTP connection could otherwise make this request
+    # hang until the WSGI server kills the whole worker.
+    notify_absentees_for_session_async(session_id)
 
     return jsonify({
 

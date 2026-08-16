@@ -5,7 +5,7 @@ from flask import Blueprint, flash, redirect, render_template, request, session,
 
 from database import get_connection
 from email_utils import EmailNotConfigured, send_absence_email
-from notify_utils import notify_absentees_for_session, summary_message
+from notify_utils import notify_absentees_for_session, notify_absentees_for_session_async, summary_message
 
 ui_bp = Blueprint("ui", __name__)
 
@@ -409,15 +409,11 @@ def stop_session_remote():
     conn.close()
 
     if owns_offering and open_session:
-        # Automatic absence emails, right when the class ends -- no
-        # button click needed. Silent when email isn't configured yet,
-        # so ending a session never nags a teacher who hasn't set up
-        # SMTP; the manual "Notify Absentees" button still works as a
-        # fallback/resend option regardless.
-        result = notify_absentees_for_session(open_session["session_id"])
-        message = summary_message(result)
-        if message:
-            flash(message)
+        # Fire-and-forget: sending must never be able to hang or crash
+        # the request that ends a session. See notify_utils.py for why
+        # this matters in practice (some hosts, including Render, can
+        # silently drop outbound SMTP connections).
+        notify_absentees_for_session_async(open_session["session_id"])
 
     return redirect(url_for("ui.teacher_dashboard", offering_id=offering_id))
 

@@ -1,7 +1,10 @@
+import logging
 import smtplib
 from email.mime.text import MIMEText
 
 from config import SMTP_FROM_NAME, SMTP_HOST, SMTP_PASSWORD, SMTP_PORT, SMTP_USER
+
+logger = logging.getLogger(__name__)
 
 
 class EmailNotConfigured(Exception):
@@ -49,7 +52,7 @@ def send_absence_email(to_email, student_name, course_code, course_name, session
     msg["From"] = f"{SMTP_FROM_NAME} <{SMTP_USER}>"
     msg["To"] = to_email
 
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=8) as server:
         server.starttls()
         server.login(SMTP_USER, SMTP_PASSWORD)
         server.sendmail(SMTP_USER, [to_email], msg.as_string())
