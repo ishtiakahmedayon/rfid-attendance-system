@@ -20,6 +20,6 @@ DEVICE_API_KEY = os.getenv("DEVICE_API_KEY", "dev-only-change-me")
 # Never commit real values; set these via environment variables.
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER", "ishtiakayon1@gmail.com")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "jbwj vbso qvhh lxxr")
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "Attendance System")
