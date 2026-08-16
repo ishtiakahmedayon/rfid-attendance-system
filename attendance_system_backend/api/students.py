@@ -17,6 +17,7 @@ def add_student():
     name = data["name"]
     batch = data["batch"]
     rfid_uid = data["rfid_uid"]
+    email = data.get("email")
 
     conn = get_connection()
     cur = conn.cursor()
@@ -24,9 +25,9 @@ def add_student():
     try:
 
         cur.execute("""
-            INSERT INTO Students
-            VALUES(?,?,?,?)
-        """, (student_id, name, batch, rfid_uid))
+            INSERT INTO Students (student_id, name, batch, rfid_uid, email)
+            VALUES(?,?,?,?,?)
+        """, (student_id, name, batch, rfid_uid, email))
 
         conn.commit()
 
@@ -70,8 +71,6 @@ def get_students():
 
     return jsonify(students)
 
-
-
 # ----------------------------
 # Update Student
 # ----------------------------
@@ -81,7 +80,7 @@ def update_student(student_id):
 
     data = request.get_json() or {}
 
-    allowed_fields = ["name", "batch", "rfid_uid"]
+    allowed_fields = ["name", "batch", "rfid_uid", "email"]
     updates = {k: v for k, v in data.items() if k in allowed_fields}
 
     if not updates:

@@ -1,11 +1,20 @@
 from datetime import datetime
 from functools import wraps
 
-from flask import Blueprint, redirect, render_template, request, session, url_for
+from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 
 from database import get_connection
+from email_utils import EmailNotConfigured, send_absence_email
+from notify_utils import notify_absentees_for_session, summary_message
 
 ui_bp = Blueprint("ui", __name__)
+
+
+ROLE_HOME_ROUTE = {
+    "teacher": "ui.teacher_dashboard",
+    "student": "ui.student_dashboard",
+    "admin": "admin.dashboard",
+}
 
 
 def login_required(role=None):
@@ -16,7 +25,8 @@ def login_required(role=None):
             if not user_role:
                 return redirect(url_for("ui.login"))
             if role and user_role != role:
-                return redirect(url_for("ui.teacher_dashboard" if user_role == "teacher" else "ui.student_dashboard"))
+                home = ROLE_HOME_ROUTE.get(user_role, "ui.login")
+                return redirect(url_for(home))
             return view(*args, **kwargs)
 
         return wrapped
@@ -364,6 +374,7 @@ def start_session_remote():
 def stop_session_remote():
     teacher_id = session.get("teacher_id")
     offering_id = request.form.get("offering_id", "").strip()
+    open_session = None
 
     conn = get_connection()
     cur = conn.cursor()
@@ -378,6 +389,12 @@ def stop_session_remote():
     owns_offering = cur.fetchone() is not None
 
     if owns_offering:
+        cur.execute(
+            "SELECT session_id FROM Sessions WHERE offering_id = ? AND status = 'Open'",
+            (offering_id,),
+        )
+        open_session = cur.fetchone()
+
         time_str = datetime.now().strftime("%H:%M:%S")
         cur.execute(
             """
@@ -390,6 +407,17 @@ def stop_session_remote():
         conn.commit()
 
     conn.close()
+
+    if owns_offering and open_session:
+        # Automatic absence emails, right when the class ends -- no
+        # button click needed. Silent when email isn't configured yet,
+        # so ending a session never nags a teacher who hasn't set up
+        # SMTP; the manual "Notify Absentees" button still works as a
+        # fallback/resend option regardless.
+        result = notify_absentees_for_session(open_session["session_id"])
+        message = summary_message(result)
+        if message:
+            flash(message)
 
     return redirect(url_for("ui.teacher_dashboard", offering_id=offering_id))
 
@@ -430,6 +458,43 @@ def cancel_session_remote():
             conn.commit()
 
     conn.close()
+
+    return redirect(url_for("ui.teacher_dashboard", offering_id=offering_id))
+
+
+@ui_bp.route("/teacher/session/<int:session_id>/notify_absentees", methods=["POST"])
+@login_required(role="teacher")
+def notify_absentees(session_id):
+    teacher_id = session.get("teacher_id")
+
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT 1
+        FROM Sessions
+        JOIN CourseOfferings ON CourseOfferings.offering_id = Sessions.offering_id
+        WHERE Sessions.session_id = ? AND CourseOfferings.assigned_teacher_id = ?
+        """,
+        (session_id, teacher_id),
+    )
+    owns_session = cur.fetchone() is not None
+    cur.execute("SELECT offering_id FROM Sessions WHERE session_id = ?", (session_id,))
+    row = cur.fetchone()
+    conn.close()
+
+    if not owns_session or row is None:
+        flash("Could not send notifications -- session not found.")
+        return redirect(url_for("ui.teacher_dashboard"))
+
+    offering_id = row["offering_id"]
+
+    result = notify_absentees_for_session(session_id)
+    if result["not_configured"]:
+        flash("Could not send notifications -- email is not configured on the server yet.")
+    else:
+        message = summary_message(result)
+        flash(message or "No absent students to notify for this session.")
 
     return redirect(url_for("ui.teacher_dashboard", offering_id=offering_id))
 

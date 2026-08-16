@@ -9,6 +9,17 @@
 <body>
   <div class="container">
     <h1 class="page-title">Teacher Dashboard</h1>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+      <div class="card" style="margin-bottom:16px; border-left:4px solid var(--primary);">
+        {% for message in messages %}
+        <p style="margin:0;">{{ message }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endwith %}
+
     <div class="top">
       <div class="brand">
         <div class="brand-mark">ID</div>
@@ -241,6 +252,12 @@
                   {% endfor %}
                 </tbody>
               </table>
+              {% if s.status == 'Closed' %}
+              <form method="post" action="{{ url_for('ui.notify_absentees', session_id=s.session_id) }}" style="margin-top:10px;">
+                <button type="submit" class="btn-ghost-danger" style="width:auto; min-width:0; padding:6px 12px; font-size:12px;">Resend Absence Emails</button>
+              </form>
+              <p class="hint" style="margin:6px 0 0;">Absence emails are sent automatically when a session ends. Use this only to resend.</p>
+              {% endif %}
               {% else %}
               <p class="empty-note">No students absent.</p>
               {% endif %}

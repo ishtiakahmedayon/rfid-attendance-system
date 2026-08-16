@@ -130,6 +130,9 @@ def _fields_students(cur, row):
          "value": row["batch"] if row else "", "required": False},
         {"name": "rfid_uid", "label": "RFID Card UID", "type": "text",
          "value": row["rfid_uid"] if row else "", "required": False},
+        {"name": "email", "label": "Email", "type": "text",
+         "value": row["email"] if row else "", "required": False,
+         "hint": "Used for absence-notification emails from the teacher dashboard."},
     ]
 
 
@@ -219,8 +222,8 @@ FIELD_BUILDERS = {
 # ---------------------------------------------------------------------
 
 def _list_students(cur):
-    columns = [("student_id", "ID"), ("name", "Name"), ("batch", "Batch"), ("rfid_uid", "Card UID")]
-    cur.execute("SELECT student_id, name, batch, rfid_uid FROM Students ORDER BY name")
+    columns = [("student_id", "ID"), ("name", "Name"), ("batch", "Batch"), ("rfid_uid", "Card UID"), ("email", "Email")]
+    cur.execute("SELECT student_id, name, batch, rfid_uid, email FROM Students ORDER BY name")
     return columns, cur.fetchall()
 
 
@@ -438,16 +441,17 @@ def _save_entity(cur, conn, entity, form, row):
             name = form.get("name", "").strip()
             batch = form.get("batch", "").strip() or None
             rfid_uid = form.get("rfid_uid", "").strip() or None
+            email = form.get("email", "").strip() or None
 
             if row is None:
                 cur.execute(
-                    "INSERT INTO Students (student_id, name, batch, rfid_uid) VALUES (?,?,?,?)",
-                    (student_id, name, batch, rfid_uid),
+                    "INSERT INTO Students (student_id, name, batch, rfid_uid, email) VALUES (?,?,?,?,?)",
+                    (student_id, name, batch, rfid_uid, email),
                 )
             else:
                 cur.execute(
-                    "UPDATE Students SET name=?, batch=?, rfid_uid=? WHERE student_id=?",
-                    (name, batch, rfid_uid, row["student_id"]),
+                    "UPDATE Students SET name=?, batch=?, rfid_uid=?, email=? WHERE student_id=?",
+                    (name, batch, rfid_uid, email, row["student_id"]),
                 )
 
         elif entity == "teachers":
