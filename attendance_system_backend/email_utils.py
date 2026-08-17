@@ -1,14 +1,17 @@
+import json
 import logging
-import smtplib
-from email.mime.text import MIMEText
+import urllib.error
+import urllib.request
 
-from config import SMTP_FROM_NAME, SMTP_HOST, SMTP_PASSWORD, SMTP_PORT, SMTP_USER
+from config import RESEND_API_KEY, RESEND_FROM_EMAIL, RESEND_FROM_NAME
 
 logger = logging.getLogger(__name__)
 
+RESEND_API_URL = "https://api.resend.com/emails"
+
 
 class EmailNotConfigured(Exception):
-    """Raised when SMTP_USER/SMTP_PASSWORD aren't set."""
+    """Raised when RESEND_API_KEY isn't set."""
 
 
 def _build_absence_email(student_name, course_code, course_name, session_date, percentage):
@@ -37,22 +40,47 @@ def _build_absence_email(student_name, course_code, course_name, session_date, p
 
 
 def send_absence_email(to_email, student_name, course_code, course_name, session_date, percentage):
-    """Sends one absence-notification email. Raises EmailNotConfigured if
-    SMTP credentials aren't set, or the underlying smtplib exception on
-    any send failure -- callers are expected to catch and tally these
-    per-recipient rather than letting one bad address abort the batch."""
+    """Sends one absence-notification email via the Resend HTTP API.
 
-    if not SMTP_USER or not SMTP_PASSWORD:
-        raise EmailNotConfigured("SMTP_USER / SMTP_PASSWORD are not configured.")
+    Raises EmailNotConfigured if RESEND_API_KEY isn't set, or a plain
+    Exception on any send failure (bad response, network error) --
+    callers are expected to catch and tally these per-recipient rather
+    than letting one bad address abort the batch.
+
+    Uses a plain HTTPS POST (via urllib, no extra dependency) instead
+    of raw SMTP -- see the comment in config.py for why: some hosts
+    block outbound SMTP ports entirely, which used to make this call
+    hang indefinitely.
+    """
+
+    if not RESEND_API_KEY:
+        raise EmailNotConfigured("RESEND_API_KEY is not configured.")
 
     subject, body = _build_absence_email(student_name, course_code, course_name, session_date, percentage)
 
-    msg = MIMEText(body, "plain")
-    msg["Subject"] = subject
-    msg["From"] = f"{SMTP_FROM_NAME} <{SMTP_USER}>"
-    msg["To"] = to_email
+    payload = {
+        "from": f"{RESEND_FROM_NAME} <{RESEND_FROM_EMAIL}>",
+        "to": [to_email],
+        "subject": subject,
+        "text": body,
+    }
 
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=8) as server:
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASSWORD)
-        server.sendmail(SMTP_USER, [to_email], msg.as_string())
+    request = urllib.request.Request(
+        RESEND_API_URL,
+        data=json.dumps(payload).encode("utf-8"),
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {RESEND_API_KEY}",
+            "Content-Type": "application/json",
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=8) as response:
+            if response.status >= 300:
+                raise Exception(f"Resend API returned status {response.status}")
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode("utf-8", errors="replace")
+        raise Exception(f"Resend API error {e.code}: {error_body}") from e
+    except urllib.error.URLError as e:
+        raise Exception(f"Could not reach Resend API: {e.reason}") from e
