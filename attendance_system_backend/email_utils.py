@@ -72,6 +72,7 @@ def send_absence_email(to_email, student_name, course_code, course_name, session
         headers={
             "Authorization": f"Bearer {RESEND_API_KEY}",
             "Content-Type": "application/json",
+            "User-Agent": "rfid-attendance-system/1.0",
         },
     )
 
